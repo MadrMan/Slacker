@@ -1,6 +1,7 @@
 var async = require('async');
 var http = require('http');
 var https = require('https');
+var logger = require('winston');
 var apikeys = require('./apikeys');
 
 function getWeatherForLatLong(callback, address, lat, lng)
@@ -155,4 +156,4 @@ module.exports = {
 	"commands": {
 		"weather": handleWeather
 	}
-}
+};
