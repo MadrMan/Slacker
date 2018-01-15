@@ -214,6 +214,7 @@ function loadCommandModule( moduleFile )
 	}
 }
 loadCommandModule( './weather.js' );
+loadCommandModule( './twitch.js' );
 
 function makeR(cmd)
 {

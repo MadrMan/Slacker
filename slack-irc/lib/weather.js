@@ -69,8 +69,7 @@ function getWeatherData( location, callback )
 			}
 			else
 			{
-				r.text = "Google GeoCode ERROR: " + apires.status;
-				callback(r, null);
+				callback(`Google GeoCode ERROR: ${apires.status}`, null);
 			}
 		});
 	});
@@ -80,20 +79,74 @@ function handleWeather(r, text, callback)
 {
 	if (!text) return;
 
-	let targets = [];
+	text = text.trim(); // Just in case :/
+	let locations = text.split("vs");
 
-	for( let i=0; i<text.split("vs"); i++ )
-		targets.push( text[i].trim() );
+	if( locations.length == 1 )
+		return getWeatherData( text, (err, data) => {
+			if( err ) {
+				r.text = err;
+				return callback( r );
+			}
+			r.text = data.text;
+			r.icon = data.icon;
+			callback( r );
+		} );
 
-	async.parallel(
-		[
-			(next) => { getWeatherData() }
-		],
-		(err) => {
-			//
-		}
-	);
-	getWeatherData( text, (err, data) => { r.text = data.text; r.icon = data.icon; callback( r ); } );
+	if( locations.length > 1 ) {
+		let targets = [];
+
+		for( let i=0; i<locations.length; i++ )
+			targets.push( locations[i].trim() );
+
+		async.eachOf(
+			targets,
+			(item, index, _next) => {
+				getWeatherData( item, (err,data) => {
+					targets[index] = data;
+					_next( err );
+				} );
+			},
+			(err) => {
+				if( err ) {
+					r.text = err;
+					callback( r );
+					return;
+				}
+
+				for( let k in targets[0] ) {
+					if( k == "score" )
+						continue;
+
+					let winner = targets[0];
+
+					for( let i=1; i<targets.length; i++ ) {
+						let a = parseFloat(targets[i][k], 10);
+						let b = parseFloat(winner[k], 10);
+
+						if( !isNaN(a) && !isNaN(b) && a > b )
+							winner = targets[i];
+					}
+					winner.score++;
+				}
+
+				let winner = targets[0];
+				for( let i=1; i<targets.length; i++ ) {
+					if( targets[i].score > winner.score )
+						winner = targets[i];
+				}
+
+				r.text = `Winner: ${winner.prettyAddress} with ${winner.score} points! (${winner.text})`;
+				r.icon = winner.icon;
+				return callback( r );
+			}
+		);
+
+		return;
+	}
+
+	r.text = "Eh, what? Need at least one location to get the weather!";
+	return callback( r ); // return by convention, pointless here though. -John.
 }
 
 module.exports = {
@@ -102,72 +155,4 @@ module.exports = {
 	"commands": {
 		"weather": handleWeather
 	}
-}
-
-
-let text = " Lancaster,UK vs London,UK vs Manchester,UK ".trim();
-let locations = text.split("vs");
-if( locations.length > 1 ) {
-	let targets = [];
-
-	for( let i=0; i<locations.length; i++ )
-		targets.push( locations[i].trim() );
-
-	async.eachOf(
-		targets,
-		(item, index, _next) => {
-			console.log( item );
-			/*getWeatherData( item, (err,data) => {
-				targets[index] = data;
-				_next();
-			} );*/
-			_next();
-		},
-		(err) => {
-			if( err ) {
-				console.log( "Unable to query one or more location :(" );
-				return;
-			}
-
-			// Dummy Data
-			for( let i=0; i<targets.length; i++ ) {
-				let loc = targets[i];
-				targets[i] = {};
-				targets[i].name = `Location ${i}`;
-				targets[i].prettyAddress = `${loc}`;
-				targets[i].valueA = Math.random() * 10;
-				targets[i].valueB = Math.random() * 10;
-				targets[i].valueC = Math.random() * 10;
-				targets[i].score = 0;
-			}
-
-			for( let k in targets[0] ) {
-				if( k == "score" )
-					continue;
-
-				let winner = targets[0];
-
-				for( let i=1; i<targets.length; i++ ) {
-					let a = parseFloat(targets[i][k], 10);
-					let b = parseFloat(winner[k], 10);
-
-					console.log( a, b, (a > b?targets[i].name:winner.name) );
-
-					if( !isNaN(a) && !isNaN(b) && a > b )
-						winner = targets[i];
-				}
-				winner.score++;
-			}
-
-			console.log( targets );
-
-			let winner = targets[0];
-			for( let i=1; i<targets.length; i++ ) {
-				if( targets[i].score > winner.score )
-					winner = targets[i];
-			}
-
-			console.log( `Winner: ${winner.prettyAddress} with ${winner.score} points!` );
-		}
-	);
 }
