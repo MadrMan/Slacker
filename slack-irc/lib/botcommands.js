@@ -33,8 +33,6 @@ loadCommandModule( './imdb.js' );
 loadCommandModule( './twitch.js' );
 loadCommandModule( './weather.js' );
 
-commandList.imdb( {}, "The Thing", (r) => { console.log( "Reply:", r ); } );
-
 function makeR(cmd)
 {
 	var prettyCommand = cmd.charAt(0).toUpperCase() + cmd.slice(1);
