@@ -8,75 +8,6 @@ var apikeys = require('./apikeys');
 
 google.resultsPerPage = 2;
 
-function getWeatherForLatLong(r, callback, address, lat, lng)
-{
-	var url = "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lng + "&APPID=" + apikeys.openweathermapAPIKey;
-	logger.error(url);
-
-	http.get(url, function(res) {
-		var body = '';
-		res.on('data', (data) => body += data);
-		res.on('end', () =>
-		{
-			var apijson = JSON.parse(body);
-			logger.error(apijson);
-			var status = apijson.cod;
-			if (status == "200")
-			{
-				var weather = apijson.weather[0];
-				var wind = apijson.wind;
-				var main = apijson.main;
-				var celsius = parseFloat(main.temp) - 273.15;
-				var prettyDesc = weather.description.charAt(0).toUpperCase() + weather.description.slice(1);
-				var prettyAddress = address + " | " + apijson.name;
-				var windSpeed = parseFloat(wind.speed) * 3.6;
-				var windSpeedMph = windSpeed * 0.621371192;
-				var windDirection = 'Wind';
-				
-				if (windSpeed > 1)
-				{
-					var windDirections = [ 'North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest' ];
-					var currentQuadrant = Math.round(parseFloat(wind.deg) / (360.0 / windDirections.length));
-					windDirection = windDirections[currentQuadrant % windDirections.length] + ' wind';
-				}
-
-				r.text = prettyAddress + " | " + prettyDesc + ", " + celsius.toFixed(1) + '\xB0C (' + (celsius * 1.8 + 32).toFixed(1) + '\xB0F) | ' + windDirection + ' ' + windSpeed.toFixed(1) + ' km/h (' + windSpeedMph.toFixed(1) + ' mph)';
-				r.icon = 'http://openweathermap.org/img/w/' + weather.icon + '.png';
-			}
-			else
-			{
-				r.text = "OpenWeatherMap ERROR: " + apijson.message;
-			}
-			callback(r);
-		});
-	});
-}
-
-function handleWeather(r, text, callback)
-{
-	if (!text) return;
-
-	https.get("https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(text) + "&key=" + apikeys.googleAPIKey, function(res)
-	{
-		var body = '';
-		res.on('data', (data) => body += data);
-		res.on('end', () =>
-		{
-			var apires = JSON.parse(body);
-			if (apires.results.length > 0)
-			{
-				apires = apires.results[0];
-				getWeatherForLatLong(r, callback, apires.formatted_address, apires.geometry.location.lat, apires.geometry.location.lng);
-			}
-			else
-			{
-				r.text = "Google GeoCode ERROR: " + apires.status;
-				callback(r);
-			}
-		});
-	});
-}
-
 function handleGoogle(r, text, callback)
 {
 	if(!text) return;
@@ -379,7 +310,6 @@ function twitchOnlineCheck(r, text, callback)
 }
 
 var commandList = {
-	"weather": handleWeather,
 	"g": handleGoogle,
 	"t": handleTranslate,
 	"roll" : handleRoll,
@@ -388,6 +318,18 @@ var commandList = {
 	"twitch" : twitchOnlineCheck,
 	"source" : handleSource
 };
+
+function loadCommandModule( moduleFile )
+{
+	let module = require( moduleFile );
+
+	for( let k in module.commands ) {
+		if( commandList[k] != undefined && commandList[k] != null )
+			console.log( `WARN: Module ${module.name} (${moduleFile}) overrides command ${k}!` );
+		commandList[k] = module.commands[k];
+	}
+}
+loadCommandModule( './weather.js' );
 
 function makeR(cmd)
 {
