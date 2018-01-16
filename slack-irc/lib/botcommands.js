@@ -22,7 +22,7 @@ function loadCommandModule( moduleFile )
 
 	for( let k in module.commands ) {
 		if( commandList[k] != undefined && commandList[k] != null )
-			console.log( `WARN: Module ${module.name} (${moduleFile}) overrides command ${k}!` );
+			logger.warn( `Module ${module.name} (${moduleFile}) overrides command ${k}!` );
 		commandList[k] = module.commands[k];
 	}
 }
