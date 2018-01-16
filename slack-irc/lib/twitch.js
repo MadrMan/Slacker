@@ -118,10 +118,22 @@ function twitchOnlineCheck(r, text, callback)
 	});
 }
 
+function initializeIntervals(callback)
+{
+	logger.debug("Setting up twitch intervals...");
+
+	setInterval(function() {
+		twitchOnlineCheck(makeR("twitch"), null, function(r) {
+			callback(r, "#lobby");
+		});
+	}, 60 * 1000);
+}
+
 module.exports = {
 	"name": "twitch.tv",
 	"author": "MadrMan",
 	"commands": {
 		"twitch" : twitchOnlineCheck
-	}
+	},
+	"initializeIntervals": initializeIntervals
 };

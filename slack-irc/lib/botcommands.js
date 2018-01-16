@@ -12,26 +12,37 @@ function handleSource(r, text, callback)
 	callback(r);
 }
 
-
-
 var commandList = { "source" : handleSource };
+var modules = [];
 
-function loadCommandModule( moduleFile )
+function registerCommandModule( moduleFile )
 {
-	let module = require( moduleFile );
-
-	for( let k in module.commands ) {
-		if( commandList[k] != undefined && commandList[k] != null )
-			logger.warn( `Module ${module.name} (${moduleFile}) overrides command ${k}!` );
-		commandList[k] = module.commands[k];
-	}
+	modules.push(require(moduleFile));
 }
-loadCommandModule( './google.js' );
-loadCommandModule( './calculator.js' )
-loadCommandModule( './dice.js' );
-loadCommandModule( './imdb.js' );
-loadCommandModule( './twitch.js' );
-loadCommandModule( './weather.js' );
+
+function loadCommandModules()
+{
+	for (let m of modules) {
+		for( let k in m.commands ) {
+			if( commandList[k] != undefined && commandList[k] != null ) {
+				logger.warn( `Module ${m.name} overrides command ${k}!` );
+			}
+	
+			commandList[k] = m.commands[k];
+		}
+	}
+
+	logger.error("Registered a total of " + modules.length + " modules with " + Object.keys(commandList).length + " commands");
+}
+
+registerCommandModule( './google.js' );
+registerCommandModule( './calculator.js' )
+registerCommandModule( './dice.js' );
+registerCommandModule( './imdb.js' );
+registerCommandModule( './twitch.js' );
+registerCommandModule( './weather.js' );
+
+loadCommandModules();
 
 function makeR(cmd)
 {
@@ -48,13 +59,11 @@ exports.initializeIntervals = function(callback)
 {
 	logger.debug("Setting up bot interval-based checks...");
 
-	setInterval(function() {
-		// logger.debug("Performing twitch check...");
-
-		twitchOnlineCheck(makeR("twitch"), null, function(r) {
-			callback(r, "#lobby");
-		});
-	}, 60 * 1000);
+	for (let module in modules) {
+		if (module.initializeIntervals) {
+			module.initializeIntervals(callback);
+		}
+	}
 }
 
 exports.processUserCommand = function(text, callback)
