@@ -5,14 +5,35 @@ var apikeys = require('./apikeys');
 
 function handleSource(r, text, callback)
 {
-	r.command = "Source";
 	r.text = "https://github.com/MadrMan/Slacker";
 	r.icon = "https://assets-cdn.github.com/images/modules/logos_page/Octocat.png";
 
 	callback(r);
 }
 
-var commandList = { "source" : handleSource };
+function handleStatus(r, text, callback)
+{
+	r.text = "NO idea";
+	r.icon = "https://image.flaticon.com/icons/png/512/36/36601.png";
+
+	callback(r);
+}
+
+var lastError;
+function handleError(r, text, callback)
+{
+	r.icon = "http://webiconspng.com/wp-content/uploads/2017/09/Explosion-PNG-Image-63024.png";
+	r.text = "No logged error for last command";
+	if (lastError)
+		r.text = lastError;
+	callback(r);
+}
+
+var commandList = { 
+	"source" : handleSource,
+	"status" : handleStatus,
+	"error" : handleError
+};
 var modules = [];
 
 function registerCommandModule( moduleFile )
@@ -36,7 +57,8 @@ function loadCommandModules()
 }
 
 registerCommandModule( './google.js' );
-registerCommandModule( './calculator.js' )
+registerCommandModule( './translate.js' );
+registerCommandModule( './calculator.js' );
 registerCommandModule( './dice.js' );
 registerCommandModule( './imdb.js' );
 registerCommandModule( './twitch.js' );
@@ -51,7 +73,8 @@ function makeR(cmd)
 	return {
 		command: prettyCommand,
 		icon: null,
- 		text: '<empty>'
+ 		text: '<empty>',
+		error: null
 	};
 }
 
@@ -80,6 +103,10 @@ exports.processUserCommand = function(text, callback)
 	if (handler)
 	{
 		logger.error("Handling command: " + sep[0]);
-		handler(r, sep.length > 1 ? sep[1] : null, callback);
+		handler(r, sep.length > 1 ? sep[1] : null, function(r) {
+			lastError = r.error;
+			logger.error(r.error);
+			callback(r);
+		});
 	}
 }
