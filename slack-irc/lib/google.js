@@ -1,89 +1,123 @@
-var http = require('http');
-var https = require('https');
-var google = require('google');
 var logger = require('winston');
+var pup = require("puppeteer");
+var url = require("url");
+var logger = require("winston");
+var jsdom = require("jsdom");
 
-google.resultsPerPage = 2;
+async function screenshot(page)
+{
+	const outfile = "/var/www/mmy.mooo.com/public_html/slacker/google.png";
+	const httpfile = "http://mmy.mooo.com/slacker/google.png";
+
+	await page.screenshot({
+		path: outfile
+	});
+	logger.error("Written google screenshot to: " + outfile);
+
+	return httpfile;
+}
+
+async function handleSearching(r, text, page)
+{
+	await page.goto("https://www.google.co.uk");
+
+	r.text = "Timeout trying to enter search query";
+	const searchBoxSelector = "#lst-ib";
+	await page.waitForSelector(searchBoxSelector);
+	await page.type(searchBoxSelector, text);
+
+	logger.error("Pre-click page: " + page.url());
+	r.text = "Timeout trying to click on search button";
+	await page.keyboard.press("Enter");
+
+	const searchResults = ".srg > .g";
+	const captchaDiv = ".g-recaptcha";
+	const captchaButton = ".recaptcha-checkbox-checkmark";
+
+	r.text = "Timeout waiting for search";
+	await page.waitForSelector([
+		searchResults,
+		captchaDiv
+	].join(', '));
+
+	// Navigation finished, check for captcha
+	if (await page.$(captchaDiv) !== null) {
+		logger.error("Captcha found");
+		r.text = "Hit captcha but frame not found";	
+
+		// Captcha is always inside an iframe
+		var captcha = await function(page) {
+			let fulfill;
+			const promise = new Promise(f => fulfill = f);
+			page.once("frameattached", () => fulfill(page.frames()[1]));
+			const frame = page.frames()[1];
+			if (frame) fulfill(frame);
+			return promise;
+		}(page);
+
+		// No results found, probably captcha'd
+		r.text = "Timeout solving captcha";
+
+		// Captcha hit, solve
+		var checkbox = await captcha.waitForSelector(captchaButton);
+		logger.error("CHECKBOX: "  + checkbox);
+		await checkbox.click();
+	
+		// Wait for actual results to load up
+		r.text = "Failed to solve captcha";
+		await page.waitForSelector(searchResults);
+		logger.error("Post-captcha page: " + page.url());
+	}
+	
+	r.text = "Timeout trying to parse results";
+	await page.exposeFunction("parseResult", ahtml =>  {
+		var dom = new jsdom.JSDOM(ahtml);
+
+		const elem = dom.window.document.querySelector(".r a");
+		const link = url.parse(elem.getAttribute("href")).href;
+		return link + " | " + elem.innerHTML;
+	});
+
+	r.text = await page.evaluate(async searchResults => {
+		const anchors = Array.from(document.querySelectorAll(searchResults));
+		
+		if (!anchors[0])
+		{
+			// No results
+			return "No results";
+		}
+
+		return await window.parseResult(anchors[0].outerHTML);
+	}, searchResults);
+}
 
 function handleGoogle(r, text, callback)
 {
 	if(!text) return;
 
-	google(text, function(err, res)
-	{
-		r.icon = "https://dl.dropboxusercontent.com/u/314911/img/glogo.png";
-		r.command = "Google";
-		if(err)
+	r.icon = "https://dl.dropboxusercontent.com/u/314911/img/glogo.png";
+	r.command = "Google";
+	r.text = "Google says maybe.";
+	
+	(async() => {
+		const browser = await pup.launch();
+		const page = await browser.newPage();
+		try
 		{
-			r.text = "[ERROR] " + err;
-		}
-		else
-		{
-			if(res.links.length > 0)
-			{
-				var link = res.links[0];
-				if(link.link == null && res.links.length > 1)
-					link = res.links[1];
-
-				r.text = link.link + " | " + link.title;
-			}
-			else
-			{
-				r.text = "No results";
-			}
+			await handleSearching(r, text, page);
+		} catch(err) {
+			r.error = err + " | " + await screenshot(page);
 		}
 		callback(r);
-	});
-}
 
-function handleTranslate(r, text, callback)
-{
-	if(!text) return;
-
-	var lang = 'en';
-	logger.error(text);
-	if(text[0] == '@')
-	{
-		var sep = text.indexOf(' ');
-		if(sep == -1) return;
-
-		lang = text.substr(1, sep - 1);
-		text = text.substr(sep);
-	}
-
-	logger.error('to: ' + lang);
-	var s = 'https://translate.yandex.net/api/v1.5/tr.json/translate?key=' + apikeys.yandexAPIKey + '&lang=' + lang + '&text=' + encodeURIComponent(text);
-	logger.error(s);
-
-	https.get(s, function(res)
-	{	
-		var body = '';
-		res.on('data', (data) => body += data);
-		res.on('end', () =>
-		{
-			r.command = "Translate";
-			
-			var apires = JSON.parse(body);
-			logger.error(apires);
-			if (res.statusCode == 200)
-			{
-				r.text = '[' + apires.lang + '] ' + apires.text;
-			}
-			else
-			{
-				r.text = 'Error translating (' + apires.message + ')';
-			}
-
-			callback(r);
-		});
-	});	
+		await browser.close();
+	})();
 }
 
 module.exports = {
 	"name": "google",
 	"author": "MadrMan",
 	"commands": {
-		"g": handleGoogle,
-		"t": handleTranslate
+		"g": handleGoogle
 	}
 };

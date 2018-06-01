@@ -5,33 +5,66 @@ var apikeys = require('./apikeys');
 
 function handleSource(r, text, callback)
 {
-	r.command = "Source";
 	r.text = "https://github.com/MadrMan/Slacker";
 	r.icon = "https://assets-cdn.github.com/images/modules/logos_page/Octocat.png";
 
 	callback(r);
 }
 
-
-
-var commandList = { "source" : handleSource };
-
-function loadCommandModule( moduleFile )
+function handleStatus(r, text, callback)
 {
-	let module = require( moduleFile );
+	r.text = "NO idea";
+	r.icon = "https://image.flaticon.com/icons/png/512/36/36601.png";
 
-	for( let k in module.commands ) {
-		if( commandList[k] != undefined && commandList[k] != null )
-			logger.warn( `Module ${module.name} (${moduleFile}) overrides command ${k}!` );
-		commandList[k] = module.commands[k];
-	}
+	callback(r);
 }
-loadCommandModule( './google.js' );
-loadCommandModule( './calculator.js' )
-loadCommandModule( './dice.js' );
-loadCommandModule( './imdb.js' );
-loadCommandModule( './twitch.js' );
-loadCommandModule( './weather.js' );
+
+var lastError;
+function handleError(r, text, callback)
+{
+	r.icon = "http://webiconspng.com/wp-content/uploads/2017/09/Explosion-PNG-Image-63024.png";
+	r.text = "No logged error for last command";
+	if (lastError)
+		r.text = "ERROR: " + lastError;
+	callback(r);
+}
+
+var commandList = { 
+	"source" : handleSource,
+	"status" : handleStatus,
+	"error" : handleError
+};
+var modules = [];
+
+function registerCommandModule( moduleFile )
+{
+	modules.push(require(moduleFile));
+}
+
+function loadCommandModules()
+{
+	for (let m of modules) {
+		for( let k in m.commands ) {
+			if( commandList[k] != undefined && commandList[k] != null ) {
+				logger.warn( `Module ${m.name} overrides command ${k}!` );
+			}
+	
+			commandList[k] = m.commands[k];
+		}
+	}
+
+	logger.error("Registered a total of " + modules.length + " modules with " + Object.keys(commandList).length + " commands");
+}
+
+registerCommandModule( './google.js' );
+registerCommandModule( './translate.js' );
+registerCommandModule( './calculator.js' );
+registerCommandModule( './dice.js' );
+registerCommandModule( './imdb.js' );
+registerCommandModule( './twitch.js' );
+registerCommandModule( './weather.js' );
+
+loadCommandModules();
 
 function makeR(cmd)
 {
@@ -40,7 +73,8 @@ function makeR(cmd)
 	return {
 		command: prettyCommand,
 		icon: null,
- 		text: '<empty>'
+ 		text: '<empty>',
+		error: null
 	};
 }
 
@@ -48,13 +82,11 @@ exports.initializeIntervals = function(callback)
 {
 	logger.debug("Setting up bot interval-based checks...");
 
-	setInterval(function() {
-		// logger.debug("Performing twitch check...");
-
-		twitchOnlineCheck(makeR("twitch"), null, function(r) {
-			callback(r, "#lobby");
-		});
-	}, 60 * 1000);
+	for (let module in modules) {
+		if (module.initializeIntervals) {
+			module.initializeIntervals(callback);
+		}
+	}
 }
 
 exports.processUserCommand = function(text, callback)
@@ -71,6 +103,10 @@ exports.processUserCommand = function(text, callback)
 	if (handler)
 	{
 		logger.error("Handling command: " + sep[0]);
-		handler(r, sep.length > 1 ? sep[1] : null, callback);
+		handler(r, sep.length > 1 ? sep[1] : null, r => {
+			lastError = r.error;
+			logger.error(r.error);
+			callback(r);
+		});
 	}
 }

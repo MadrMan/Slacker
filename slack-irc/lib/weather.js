@@ -20,14 +20,16 @@ function getWeatherForLatLong(callback, address, lat, lng)
 			var status = apijson.cod;
 			if (status == "200")
 			{
+				let weather = apijson.weather[0];
+				let windSpeed = parseFloat(apijson.wind.speed) * 3.6;
 				let data = {
-					"weather":       apijson.weather[0],
+					"weather":       weather,
 					"wind":          apijson.wind,
 					"main":          apijson.main,
-					"celsius":       parseFloat(main.temp) - 273.15,
+					"celsius":       parseFloat(apijson.main.temp) - 273.15,
 					"prettyDesc":    weather.description.charAt(0).toUpperCase() + weather.description.slice(1),
 					"prettyAddress": address + " | " + apijson.name,
-					"windSpeed":     parseFloat(wind.speed) * 3.6,
+					"windSpeed":     windSpeed,
 					"windSpeedMph":  windSpeed * 0.621371192,
 					"windDirection": 'Wind',
 					"score":         0        // Dummy value for if we're doing a 'Top Trumps' thing with this data - saves iterating over it later... -John
@@ -36,18 +38,19 @@ function getWeatherForLatLong(callback, address, lat, lng)
 				if (data.windSpeed > 1)
 				{
 					let windDirections = [ 'North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest' ];
-					let currentQuadrant = Math.round(parseFloat(wind.deg) / (360.0 / windDirections.length));
+					let currentQuadrant = Math.round(parseFloat(data.wind.deg) / (360.0 / windDirections.length));
 					data.windDirection = windDirections[currentQuadrant % windDirections.length] + ' wind';
 				}
 
-				data.text = prettyAddress + " | " + prettyDesc + ", " + celsius.toFixed(1) + '\xB0C (' + (celsius * 1.8 + 32).toFixed(1) + '\xB0F) | ' + windDirection + ' ' + windSpeed.toFixed(1) + ' km/h (' + windSpeedMph.toFixed(1) + ' mph)';
+				data.text = data.prettyAddress + " | " + data.prettyDesc + ", " + data.celsius.toFixed(1) + '\xB0C (' + (data.celsius * 1.8 + 32).toFixed(1) + '\xB0F) | ' + data.windDirection + ' ' + data.windSpeed.toFixed(1) + ' km/h (' + data.windSpeedMph.toFixed(1) + ' mph)';
 				data.icon = 'http://openweathermap.org/img/w/' + weather.icon + '.png';
+
+				callback(null, data);
 			}
 			else
 			{
 				callback( "OpenWeatherMap ERROR: " + apijson.message, null);
 			}
-			callback(null, data);
 		});
 	});
 }
