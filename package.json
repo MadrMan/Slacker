@@ -1,15 +1,31 @@
 {
+  "name": "slacker.github",
+  "description": "Slackbot commands and helpers for the DevhatNet slack bot",
   "version": "1.0.0",
+  "author": "MadrMan, John Vidler",
+  "license": "ISC",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MadrMan/Slacker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MadrMan/Slacker/issues"
+  },
+  "homepage": "https://github.com/MadrMan/Slacker",
   "dependencies": {
     "@slack/client": "^3.10.0",
     "check-env": "^1.3.0",
     "commander": "^2.11.0",
-    "expr-eval": "^1.0.1",
+    "expr-eval": "^1.2.1",
     "google": "^2.1.0",
-    "imdb-api": "^3.1.1",
+    "imdb-api": "^3.1.2",
     "irc": "^0.5.2",
     "jsdom": "^11.6.2",
     "lodash": "^4.17.4",
-    "puppeteer": "^1.0.0"
+    "puppeteer": "^1.0.0",
+    "winston": "^2.4.0"
   }
 }
