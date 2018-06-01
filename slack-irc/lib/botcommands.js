@@ -25,7 +25,7 @@ function handleError(r, text, callback)
 	r.icon = "http://webiconspng.com/wp-content/uploads/2017/09/Explosion-PNG-Image-63024.png";
 	r.text = "No logged error for last command";
 	if (lastError)
-		r.text = lastError;
+		r.text = "ERROR: " + lastError;
 	callback(r);
 }
 
@@ -103,7 +103,7 @@ exports.processUserCommand = function(text, callback)
 	if (handler)
 	{
 		logger.error("Handling command: " + sep[0]);
-		handler(r, sep.length > 1 ? sep[1] : null, function(r) {
+		handler(r, sep.length > 1 ? sep[1] : null, r => {
 			lastError = r.error;
 			logger.error(r.error);
 			callback(r);
