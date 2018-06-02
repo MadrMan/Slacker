@@ -178,11 +178,12 @@ function getPollenLatLng( lat, lng, callback ) {
 				return callback( error, null )
 
 			if (response.statusCode === 200) {
-				body.forecast.forEach(function (item) {
+				for( let i=0; i<body.forecast.length; i++ ) {
+					let item = body.forecast[i];
 					if (item.date.contains(today)) {
 						return callback( null, item.pollen_count );
 					}
-				});
+				};
 			}
 
 			callback( "Web request error", null );
