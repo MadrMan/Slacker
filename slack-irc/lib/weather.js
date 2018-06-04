@@ -5,6 +5,15 @@ var logger = require('winston');
 var apikeys = require('./apikeys');
 var request = require('request');
 
+const pollen_icons = {
+	"Error":     "http://johnvidler.co.uk/icon/pollen/low.png",
+	"Default":   "http://johnvidler.co.uk/icon/pollen/low.png",
+	"Low":       "http://johnvidler.co.uk/icon/pollen/low.png",
+	"Moderate":  "http://johnvidler.co.uk/icon/pollen/moderate.png",
+	"High":      "http://johnvidler.co.uk/icon/pollen/high.png",
+	"Very High": "http://johnvidler.co.uk/icon/pollen/very-high.png"
+}
+
 function getWeatherForLatLong(callback, address, lat, lng)
 {
 	var url = "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lng + "&APPID=" + apikeys.openweathermapAPIKey;
@@ -214,19 +223,24 @@ function handlePollen(r, text, callback)
 {
 	if (!text) return;
 	text = text.trim();
+	r.icon = pollen_icons.Default;
 
 	getLatLng( text, (err, addr, lat, lng) => {
 		if( err ) {
 			r.text = "Sorry, Google doesn't know where that location is :(";
+			r.icon = pollen_icons.Error;
 			return callback( r );
 		}
 
 		getPollenLatLng( lat, lng, (err, result) => {
 			if( err ) {
 				r.text = "No data for that location :(";
+				r.icon = pollen_icons.Error;
 				return callback( r );
 			}
 			r.text = `Pollen for ${text} is ${result}`;
+			if( pollen_icons[text] )
+				r.icon = pollen_icons[text];
 			return callback( r );
 		} )
 
