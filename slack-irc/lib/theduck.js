@@ -163,4 +163,4 @@ module.exports = {
 	}
 };
 
-handleQuery( {}, process.argv[2], (r) => console.log(r) );
+//handleQuery( {}, process.argv[2], (r) => console.log(r) );
