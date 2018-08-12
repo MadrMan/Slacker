@@ -3,12 +3,51 @@ var https = require('https');
 var logger = require('winston');
 var apikeys = require('./apikeys');
 
+const { exec } = require('child_process');
+
 function handleSource(r, text, callback)
 {
 	r.text = "https://github.com/MadrMan/Slacker";
 	r.icon = "https://assets-cdn.github.com/images/modules/logos_page/Octocat.png";
 
 	callback(r);
+}
+
+function handleEcho(r, text, callback)
+{
+	r.text = text;
+
+	callback(r);
+}
+
+function handlePull(r, text, callback)
+{
+	r.icon = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Octicons-git-pull-request.svg/200px-Octicons-git-pull-request.svg.png";
+
+	exec("git pull --ff-only", (err, stdout, stderr) => {
+		if (err)
+		{
+			r.text = "```ERROR:\n" + err + "```";
+			callback(r);
+
+			return;
+		}
+
+		if (stderr)
+		{
+			r.text = "```ERROR:\n" + stderr + "```";
+		}
+		else
+		{
+			r.text = "```" + stdout + "```";
+		}
+
+		callback(r);
+
+		// We assume we're in a forever loop
+		// We wait for the above reply to send, then restart
+		setTimeout(process.exit, 1001, 0);
+	});
 }
 
 function handleStatus(r, text, callback)
@@ -32,7 +71,9 @@ function handleError(r, text, callback)
 var commandList = { 
 	"source" : handleSource,
 	"status" : handleStatus,
-	"error" : handleError
+	"error" : handleError,
+	"echo" : handleEcho,
+	"pull" : handlePull
 };
 var modules = [];
 

@@ -5,7 +5,7 @@ var apikeys = require('./apikeys');
 
 twitchOnlineStreams =[];
 // twitchUserList = [ "madflux", "tuireanntv", "thothonegan" ];
-twitchUserList = [ "tuireanntv", "thothonegan" ];
+twitchUserList = [ "moggie100", "tuireanntv", "thothonegan" ];
 
 function makeTwitchOptions(url)
 {
