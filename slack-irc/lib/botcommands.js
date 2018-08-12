@@ -63,7 +63,7 @@ registerCommandModule( './dice.js' );
 registerCommandModule( './imdb.js' );
 registerCommandModule( './twitch.js' );
 registerCommandModule( './weather.js' );
-registerCommandModule( './duckduckgo.js' );
+registerCommandModule( './theduck.js' );
 
 loadCommandModules();
 
