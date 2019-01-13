@@ -22,7 +22,7 @@ async function handleSearching(r, text, page)
 	await page.goto("https://www.google.co.uk");
 
 	r.text = "Timeout trying to enter search query";
-	const searchBoxSelector = "#lst-ib";
+	const searchBoxSelector = "input[autocomplete=off]";
 	await page.waitForSelector(searchBoxSelector);
 	await page.type(searchBoxSelector, text);
 
@@ -75,7 +75,7 @@ async function handleSearching(r, text, page)
 
 		const elem = dom.window.document.querySelector(".r a");
 		const link = url.parse(elem.getAttribute("href")).href;
-		return link + " | " + elem.innerHTML;
+		return link + " | " + elem.querySelector("h3").textContent;
 	});
 
 	r.text = await page.evaluate(async searchResults => {
@@ -89,6 +89,8 @@ async function handleSearching(r, text, page)
 
 		return await window.parseResult(anchors[0].outerHTML);
 	}, searchResults);
+
+	return true;
 }
 
 function handleGoogle(r, text, callback)
@@ -102,13 +104,28 @@ function handleGoogle(r, text, callback)
 	(async() => {
 		const browser = await pup.launch();
 		const page = await browser.newPage();
+		let success = false;
+
 		try
 		{
-			await handleSearching(r, text, page);
+			success = await handleSearching(r, text, page);
 		} catch(err) {
 			r.error = err + " | " + await screenshot(page);
 		}
+
+		logger.error("Result of search: " + r.text + " = success: " + success);
+
 		callback(r);
+
+		if (success) {
+			// Forward to stop bot check
+			let resultLink = await page.waitForSelector(".r a");
+			await resultLink.click();
+			await page.waitForNavigation({waitUntil: 'load'});
+
+			// Verify
+			await screenshot(page);
+		}
 
 		await browser.close();
 	})();
