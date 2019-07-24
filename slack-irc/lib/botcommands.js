@@ -46,7 +46,7 @@ function handlePull(r, text, callback)
 
 		// We assume we're in a forever loop
 		// We wait for the above reply to send, then restart
-		setTimeout(process.exit, 1001, 0);
+		setTimeout(process.exit, 2001, 0);
 	});
 }
 
