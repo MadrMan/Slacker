@@ -44,7 +44,7 @@ function getWeatherForLatLong(callback, address, lat, lng)
 					"score":         0        // Dummy value for if we're doing a 'Top Trumps' thing with this data - saves iterating over it later... -John
 				};
 				
-				if (data.windSpeed > 1)
+				if (data.windSpeed > 1 && typeof data.wind.deg !== 'undefined')
 				{
 					let windDirections = [ 'North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest' ];
 					let currentQuadrant = Math.round(parseFloat(data.wind.deg) / (360.0 / windDirections.length));
