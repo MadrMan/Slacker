@@ -14,7 +14,7 @@ const pollen_icons = {
 	"Very High": "http://johnvidler.co.uk/icon/pollen/very-high.png"
 }
 
-function getWeatherForLatLong(callback, address, lat, lng, extended)
+function getWeatherForLatLong(callback, address, lat, lng, extended = false)
 {
 	var url = "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lng + "&APPID=" + apikeys.openweathermapAPIKey;
 	logger.error(url);
