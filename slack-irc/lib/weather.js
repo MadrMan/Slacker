@@ -14,7 +14,7 @@ const pollen_icons = {
 	"Very High": "http://johnvidler.co.uk/icon/pollen/very-high.png"
 }
 
-function getWeatherForLatLong(callback, address, lat, lng)
+function getWeatherForLatLong(callback, address, lat, lng, extended = false)
 {
 	var url = "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lng + "&APPID=" + apikeys.openweathermapAPIKey;
 	logger.error(url);
@@ -41,6 +41,7 @@ function getWeatherForLatLong(callback, address, lat, lng)
 					"windSpeed":     windSpeed,
 					"windSpeedMph":  windSpeed * 0.621371192,
 					"windDirection": 'Wind',
+					"humidity":		 apijson.main.humidity,
 					"score":         0        // Dummy value for if we're doing a 'Top Trumps' thing with this data - saves iterating over it later... -John
 				};
 				
@@ -54,6 +55,31 @@ function getWeatherForLatLong(callback, address, lat, lng)
 				data.text = data.prettyAddress + " | " + data.prettyDesc + ", " + data.celsius.toFixed(1) + '\xB0C (' + (data.celsius * 1.8 + 32).toFixed(1) + '\xB0F) | ' + data.windDirection + ' ' + data.windSpeed.toFixed(1) + ' km/h (' + data.windSpeedMph.toFixed(1) + ' mph)';
 				data.icon = 'http://openweathermap.org/img/w/' + weather.icon + '.png';
 
+				if(extended) {
+					data.attachment = {
+						title: `Weather for ${data.prettyAddress}`,
+						fallback: data.text,
+						fields: [
+							{
+								"title": "Conditions",
+								"value": data.prettyDesc
+							},
+							{
+								"title": "Temperature",
+								"value": `${data.celsius.toFixed(1)}\xB0C (${(data.celsius * 1.8 + 32).toFixed(1)}\xB0F)`
+							},
+							{
+								"title": "Wind",
+								"value": `${data.windDirection} ${data.windSpeed.toFixed(1)} km/h ( ${data.windSpeedMph.toFixed(1)} mph)`
+							},
+							{
+								"title": "Humidity",
+								"value": `${data.humidity}%`
+							}
+						]
+					};
+	
+				}
 				callback(null, data);
 			}
 			else
@@ -64,7 +90,7 @@ function getWeatherForLatLong(callback, address, lat, lng)
 	});
 }
 
-function getWeatherData( location, callback )
+function getWeatherData( location, extended, callback)
 {
 	https.get("https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(location) + "&key=" + apikeys.googleAPIKey, function(res)
 	{
@@ -79,7 +105,8 @@ function getWeatherData( location, callback )
 				getWeatherForLatLong( callback,
 					apires.formatted_address,
 					apires.geometry.location.lat,
-					apires.geometry.location.lng );
+					apires.geometry.location.lng,
+					extended );
 			}
 			else
 			{
@@ -89,7 +116,7 @@ function getWeatherData( location, callback )
 	});
 }
 
-function handleWeather(r, text, callback)
+function handleWeather(r, text, callback, extended)
 {
 	if (!text) return;
 
