@@ -68,7 +68,7 @@ function handleError(r, text, callback)
 	callback(r);
 }
 
-var commandList = { 
+var commandList = {
 	"source" : handleSource,
 	"status" : handleStatus,
 	"error" : handleError,
@@ -89,7 +89,7 @@ function loadCommandModules()
 			if( commandList[k] != undefined && commandList[k] != null ) {
 				logger.warn( `Module ${m.name} overrides command ${k}!` );
 			}
-	
+
 			commandList[k] = m.commands[k];
 		}
 	}
@@ -105,6 +105,7 @@ registerCommandModule( './imdb.js' );
 registerCommandModule( './twitch.js' );
 registerCommandModule( './weather.js' );
 registerCommandModule( './theduck.js' );
+registerCommandModule( './brexit.js' );
 
 loadCommandModules();
 

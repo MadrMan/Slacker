@@ -2,7 +2,7 @@
   "name": "slacker.github",
   "description": "Slackbot commands and helpers for the DevhatNet slack bot",
   "version": "1.0.0",
-  "author": "MadrMan, John Vidler",
+  "author": "MadrMan, John Vidler, Hussein Duvigneau",
   "license": "ISC",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
