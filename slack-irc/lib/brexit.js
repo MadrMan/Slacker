@@ -1,6 +1,6 @@
 function countdown(r, _, callback)
 {
-	var currentDeadline = new Date("October 31, 2019 23:00:00 (GMT)").getTime();
+	var currentDeadline = new Date("January 31, 2020 23:00:00 (GMT)").getTime();
 	var currentPM = "Boris Johnson";
 
 	var now = new Date().getTime();
