@@ -1,4 +1,4 @@
-var logger = require('winston');
+var logger = require('./logging');
 var imdb = require('imdb-api');
 
 function prettyPrintImdb(r, things)

@@ -1,13 +1,49 @@
 var http = require('http');
 var https = require('https');
-var logger = require('winston');
+var logger = require('./logging');
 var apikeys = require('./apikeys');
 
 twitchOnlineStreams =[];
 // twitchUserList = [ "madflux", "tuireanntv", "thothonegan" ];
 twitchUserList = [ "moggie100", "tuireanntv", "thothonegan" ];
 
-function makeTwitchOptions(url)
+function loginTwitchAnd(next)
+{
+	var httpHeaders = {
+		'client_id': apikeys.twitchClientID,
+		'client_secret': apikeys.twitchClientSecret,
+		'grant_type': 'client_credentials',
+		'scope': 'user:read:email'
+	};
+
+	logger.error(JSON.stringify(httpHeaders));
+
+	https.get({
+		host: 'id.twitch.tv',
+		port: 443,
+		path: '/oauth2/token',
+		method: 'POST',
+		headers: httpHeaders
+	}, function(res) {
+		var body = '';
+		res.on('data', (data) => body += data);
+		res.on('end', () => {
+			var apires = JSON.parse(body);
+			logger.error(apires);
+
+
+			if (res.statusCode == 200) {
+				logger.error("Twitch login success");
+				next(apires.access_token);
+			} else {
+				logger.error("Twitch login failed");
+				// Failed to log in
+			}
+		});
+	});
+}
+
+function makeTwitchOptions(url, token)
 {
 	var options = {
 		host: 'api.twitch.tv',
@@ -15,6 +51,7 @@ function makeTwitchOptions(url)
 		path: url,
 		method: 'GET',
 		headers: {
+			'Authorization': 'Bearer ' + token,
 			'Client-ID': apikeys.twitchClientID
 		}
 	}
@@ -48,21 +85,24 @@ function prettyPrintTwitch(r, userLogin, userDisplay, stream)
 
 function printTwitchUpdateForStream(r, data, callback)
 {
-	var options = makeTwitchOptions("/helix/users?id=" + data.user_id);
-	https.get(options, function(res) {
-		var body = '';
-		res.on('data', (data) => body += data);
-		// res.on('error', (e) => console.error(e));
-		res.on('end', () => {
-			var apires = JSON.parse(body);
-			logger.error(apires);
-
-			if (res.statusCode == 200) {
-				prettyPrintTwitch(r, apires.data[0].login, apires.data[0].display_name, data);
-				callback(r);
-			} else {
-				// Something blew up
-			}
+	loginTwitchAnd(token => {
+		var options = makeTwitchOptions("/helix/users?id=" + data.user_id, token);
+		https.get(options, function(res) {
+			var body = '';
+			res.on('data', (data) => body += data);
+			// res.on('error', (e) => console.error(e));
+			res.on('end', () => {
+				var apires = JSON.parse(body);
+				logger.error(apires);
+	
+				if (res.statusCode == 200) {
+					prettyPrintTwitch(r, apires.data[0].login, apires.data[0].display_name, data);
+					callback(r);
+				} else {
+					logger.error("Twitch user fetch failed");
+					// Something blew up
+				}
+			});
 		});
 	});
 }
@@ -84,36 +124,39 @@ function twitchOnlineCheck(r, text, callback)
 		url += "&user_login=" + user;
 	});
 
-	https.get(makeTwitchOptions(url), function(res) {	
-		var body = '';
-		res.on('data', (data) => body += data);
-		// res.on('error', (e) => console.error(e));
-		res.on('end', () => {
-			var apires = JSON.parse(body);
-			logger.error(res.statusCode);
-			logger.error(apires);
-			if (res.statusCode == 200) {
-				if (apires.data.length == 0 && isManualCheck) {
-					r.text = usersToCheck[0] + " is offline";
-					callback(r);
+	loginTwitchAnd(token => { 
+		https.get(makeTwitchOptions(url), function(res) {	
+			var body = '';
+			res.on('data', (data) => body += data);
+			// res.on('error', (e) => console.error(e));
+			res.on('end', () => {
+				var apires = JSON.parse(body);
+				logger.error(res.statusCode);
+				logger.error(apires);
+				if (res.statusCode == 200) {
+					if (apires.data.length == 0 && isManualCheck) {
+						r.text = usersToCheck[0] + " is offline";
+						callback(r);
+					} else {
+						var currentOnlineStreams = [];
+	
+						apires.data.forEach(function(stream)  {
+							currentOnlineStreams.push(stream.id);
+	
+							if (!twitchOnlineStreams.includes(stream.id))
+							{
+								// New stream, show update
+								printTwitchUpdateForStream(r, stream, callback);
+							}
+						});
+	
+						twitchOnlineStreams = currentOnlineStreams;	
+					}
 				} else {
-					var currentOnlineStreams = [];
-
-					apires.data.forEach(function(stream)  {
-						currentOnlineStreams.push(stream.id);
-
-						if (!twitchOnlineStreams.includes(stream.id))
-						{
-							// New stream, show update
-							printTwitchUpdateForStream(r, stream, callback);
-						}
-					});
-
-					twitchOnlineStreams = currentOnlineStreams;	
+					logger.error("Twitch user stream check failed");
+					// Something blew upi
 				}
-			} else {
-				// Something blew up
-			}
+			});
 		});
 	});
 }

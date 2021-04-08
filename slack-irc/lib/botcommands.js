@@ -1,6 +1,6 @@
 var http = require('http');
 var https = require('https');
-var logger = require('winston');
+var logger = require('./logging');
 var apikeys = require('./apikeys');
 
 const { exec } = require('child_process');
@@ -97,7 +97,7 @@ function loadCommandModules()
 	logger.error("Registered a total of " + modules.length + " modules with " + Object.keys(commandList).length + " commands");
 }
 
-registerCommandModule( './google.js' );
+//registerCommandModule( './google.js' );
 registerCommandModule( './translate.js' );
 registerCommandModule( './calculator.js' );
 registerCommandModule( './dice.js' );

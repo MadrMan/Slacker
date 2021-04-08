@@ -1,10 +1,8 @@
 var _ = require('lodash');
 var irc = require('irc');
-var logger = require('winston');
-var SlackRtmClient = require('@slack/client').RtmClient;
-var SLACK_CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS;
-var SLACK_RTM_EVENTS = require('@slack/client').RTM_EVENTS;
-var SlackWebClient = require('@slack/client').WebClient;
+var logger = require('./logging');
+var SlackRtmClient = require('@slack/rtm-api').RTMClient;
+var SlackWebClient = require('@slack/web-api').WebClient;
 var errors = require('./errors');
 var validateChannelMapping = require('./validators').validateChannelMapping;
 var emojis = require('./emoji');
@@ -19,8 +17,6 @@ var REQUIRED_FIELDS = ['server', 'nickname', 'channelMapping', 'token'];
  * @param {object} options - server, nickname, channelMapping, outgoingToken, incomingURL
  */
 function Bot(options) {
-  logger.level = 'debug';
-
   REQUIRED_FIELDS.forEach(function(field) {
     if (!options[field]) {
       throw new errors.ConfigurationError('Missing configuration field ' + field);
@@ -83,10 +79,6 @@ Bot.prototype.connect = function() {
 };
 
 Bot.prototype.attachListeners = function() {
-  this.slack.on(SLACK_CLIENT_EVENTS.RTM.RTM_CONNECTION_OPENED, function() {
-    logger.debug('Connected to Slack');
-  });
-
   this.ircClient.on('registered', function(message) {
     logger.debug('Registered event: ', message);
     this.autoSendCommands.forEach(function(element) {
@@ -99,7 +91,7 @@ Bot.prototype.attachListeners = function() {
     logger.error('Received error event from IRC', error);
   });
 
-  this.slack.on(SLACK_RTM_EVENTS.MESSAGE, function(message) {
+  this.slack.on('message', function(message) {
     // Ignore bot messages and people leaving/joining
     if (message.type === 'message' &&
       (!message.subtype || ALLOWED_SUBTYPES.indexOf(message.subtype) > -1)) {

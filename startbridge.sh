@@ -1,1 +1,1 @@
-forever start --spinSleepTime 5000 -e bridge-err.log ./slack-irc/index.js --config ./slackbot.json
+forever start --spinSleepTime 5000 ./slack-irc/index.js --config ./slackbot.json

@@ -1,12 +1,7 @@
 #!/usr/bin/env node
 
 var createBots = require('./lib/helpers').createBots;
-var logger = require('winston');
-
-/*istanbul ignore next*/
-if (process.env.NODE_ENV === 'development') {
-  logger.level = 'debug';
-}
+var logger = require('./lib/logging');
 
 /* istanbul ignore next*/
 if (!module.parent) {
