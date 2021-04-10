@@ -1,1 +1,1 @@
-forever start --spinSleepTime 5000 ./slack-irc/index.js --config ./slackbot.json
+forever start --spinSleepTime 5000 ./src/index.js --config ./config.js

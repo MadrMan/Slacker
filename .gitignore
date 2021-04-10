@@ -1,3 +1,5 @@
 node_modules/
 .idea
-/slack-irc/lib/apikeys.js
+/src/apikeys.js
+console.log
+config.js

@@ -3,12 +3,11 @@
 var program = require('commander');
 var path = require('path');
 var checkEnv = require('check-env');
-var helpers = require('./helpers');
 var logger = require('./logging')
 
-function run() {
+function run(createBots) {
   program
-    .version(require('../../package.json').version)
+    .version(require('../package.json').version)
     .option('-t, --test <command>', "Run a command locally.")
     .option('-c, --config <path>',
       'Sets the path to the config file, otherwise read from the env variable CONFIG_FILE.'
@@ -28,11 +27,14 @@ function run() {
 
     var configFile = require(config);
 
-    helpers.createBots(configFile);
+    createBots(configFile);
   }
   else
   {
-    helpers.runCommandCLI(options.test);
+    botcommands.processUserCommand(options.test, function(r) {
+      console.log("Done. Output:");
+      console.log(r.text);
+    });
   }
 }
 

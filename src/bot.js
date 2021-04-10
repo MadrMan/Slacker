@@ -1,13 +1,8 @@
 var _ = require('lodash');
-var irc = require('irc');
-var logger = require('./logging');
-var SlackRtmClient = require('@slack/rtm-api').RTMClient;
-var SlackWebClient = require('@slack/web-api').WebClient;
+
 var errors = require('./errors');
 var validateChannelMapping = require('./validators').validateChannelMapping;
 var emojis = require('./emoji');
-var botcommands = require('./botcommands');
-var util = require('util');
 
 var ALLOWED_SUBTYPES = ['me_message'];
 var REQUIRED_FIELDS = ['server', 'nickname', 'channelMapping', 'token'];
@@ -26,15 +21,7 @@ function Bot(options) {
   logger.error(" === STARTUP === ");
 
   validateChannelMapping(options.channelMapping);
-
-  this.slack = new SlackRtmClient(options.token, {
-    logLevel: 'error',
-    autoReconnect: true,
-    autoMark: true    
-  });
-
-  this.slackweb = new SlackWebClient(options.token);
-
+  
   this.server = options.server;
   this.nickname = options.nickname;
   this.ircOptions = options.ircOptions;
@@ -71,11 +58,6 @@ Bot.prototype.connect = function() {
 
   this.ircClient = new irc.Client(this.server, this.nickname, ircOptions);
   this.attachListeners();
-
-  botcommands.initializeIntervals(function(response, channel) {
-    var channelid = this.slack.dataStore.getChannelOrGroupByName(channel).id;
-    this.handleOutwardMessage(response, null, channel, true);
-  }.bind(this));
 };
 
 Bot.prototype.attachListeners = function() {
@@ -90,15 +72,6 @@ Bot.prototype.attachListeners = function() {
   this.ircClient.on('error', function(error) {
     logger.error('Received error event from IRC', error);
   });
-
-  this.slack.on('message', function(message) {
-    // Ignore bot messages and people leaving/joining
-    if (message.type === 'message' &&
-      (!message.subtype || ALLOWED_SUBTYPES.indexOf(message.subtype) > -1)) {
-      this.sendToIRC(message);
-      this.processCommand(message.user, message.channel, message.text, false);
-    }
-  }.bind(this));
 
   this.ircClient.on('message', function(author, to, text) {
 	 this.sendToSlack(author, to, text);
@@ -228,24 +201,7 @@ Bot.prototype.handleOutwardMessage = function(response, author, channelid, isirc
       this.ircClient.say(ircChannel, "[" + response.command + "] " + response.text);
     }
 
-    if (slackChannel)
-    {
-      var data = {
-        username: response.command,
-        parse: 'full',
-        icon_url: response.icon,
-      };
 
-      var replyText = response.text;
-
-      if (response.attachment) {
-	      // Replacing our message with our cool attachment
-	      replyText = "";
-	      data.attachments = [ response.attachment ];
-      }
-      
-      this.slackweb.chat.postMessage(slackChannel.id, replyText, data);
-    }
 }
 
 Bot.prototype.sendToSlack = function(author, channel, text) {
@@ -259,13 +215,7 @@ Bot.prototype.sendToSlack = function(author, channel, text) {
       return;
     }
 
-    var data = {
-      username: author,
-      parse: 'full',
-      icon_url: 'http://api.adorable.io/avatars/48/' + author + '.png'
-    };
-    logger.debug('Sending message to Slack', text, channel, '->', slackChannelName);
-    this.slackweb.chat.postMessage(slackChannel.id, text, data);
+
   }
 };
 
