@@ -25,20 +25,21 @@ class Bridge
     messageReceived(bot, username, context, message) {
         logger.debug(`Got message in ${context.channel ? context.channel : "pm"}: <${username}> ${message}`)
 
-        if (!botcommands.processUserCommand(message, response => {
+        // Try to process as command
+        botcommands.processUserCommand(message, response => {
             response.context = context;
             this.messageOut(bot, response);
-        })) {
-            // No command handled, so this must've been a regular chat command or a PM
-            let response = {
-                username: username,
-                context: context,
-                text: message,
-                bridge: true
-            };
+        });
 
-            this.messageOut(bot, response)
-        }
+        // And then echo it everywhere
+        let response = {
+            username: username,
+            context: context,
+            text: message,
+            bridge: true
+        };
+
+        this.messageOut(bot, response);
     }
 
     messageOut(bot, response) {
