@@ -25,13 +25,7 @@ class Bridge
     messageReceived(bot, username, context, message) {
         logger.debug(`Got message in ${context.channel ? context.channel : "pm"}: <${username}> ${message}`)
 
-        // Try to process as command
-        botcommands.processUserCommand(message, response => {
-            response.context = context;
-            this.messageOut(bot, response);
-        });
-
-        // And then echo it everywhere
+        // Echo it everywhere
         let response = {
             username: username,
             context: context,
@@ -40,6 +34,12 @@ class Bridge
         };
 
         this.messageOut(bot, response);
+
+        // Then try to process it as a command
+        botcommands.processUserCommand(message, response => {
+            response.context = context;
+            this.messageOut(bot, response);
+        });
     }
 
     messageOut(bot, response) {
