@@ -124,7 +124,7 @@ exports.initializeIntervals = function(callback) {
 }
 
 exports.processUserCommand = function(text, callback) {
-	if(text[0] != '!') return;
+	if(text[0] != '!') return false;
 
 	var sep = text.toLowerCase();
 	var space = sep.indexOf(' ');
@@ -138,8 +138,12 @@ exports.processUserCommand = function(text, callback) {
 		logger.error("Handling command: " + sep[0]);
 		handler(r, sep.length > 1 ? sep[1] : null, r => {
 			lastError = r.error;
-			logger.error(r.error);
+			if (r.error) logger.error(r.error);
 			callback(r);
 		});
+
+		return true;
 	}
+
+	return false;
 }

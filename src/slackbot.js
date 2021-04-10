@@ -21,22 +21,28 @@ class SlackBot {
         this.slack.on('message', message => {
             // Ignore bot messages and people leaving/joining
             if (message.type === 'message') {
-                if (!message.subtype) {
-                    var user = this.users.find(user => user.id === message.user);
-                    var slackChannel = this.channels.find(channel => channel.id === message.channel);
-
-                    // If we found a channel, map it to the mapping
-                    if (slackChannel) {
-                        var mappedChannel = this.config.channels.find(channel => channel.slack === slackChannel.name);
-                        
-                        if (mappedChannel) {
-                            var channel = mappedChannel.id;
-                        }
-                    }
-
-                    var username = user ? user.real_name : "???";
-                    this.messageReceived(this, username, channel, message.text);
+                if (message.subtype === "bot_message") {
+                    return;
                 }
+
+                let user = this.users.find(user => user.id === message.user);
+                let slackChannel = this.channels.find(channel => channel.id === message.channel);
+
+                // If we found a channel, map it to the mapping
+                if (slackChannel) {
+                    let mappedChannel = this.config.channels.find(channel => channel.slack === slackChannel.name);
+                    
+                    if (mappedChannel) {
+                        var channel = mappedChannel.id;
+                    }
+                }
+
+                let username = user ? user.real_name : "???";
+                this.messageReceived(this, username, {
+                    channel: channel,
+                    slack: { 
+                        channel: message.channel
+                    }}, message.text);
             }
         });
 
@@ -45,7 +51,7 @@ class SlackBot {
                 logger.error("Slackweb user list() failed");
             }
 
-            for (var user of result.members) {
+            for (let user of result.members) {
                 this.users.push(user);
             }
         });
@@ -55,7 +61,7 @@ class SlackBot {
                 logger.error("Slackweb channel list() failed");
             }
 
-            for (var channel of result.channels) {
+            for (let channel of result.channels) {
                 this.channels.push(channel);
             }
         });
@@ -64,48 +70,48 @@ class SlackBot {
         this.slack.start();
     }
 
-    channelToSlackChannel(channel) {
-        for (mapping of this.config.channels) {
-            if (mapping[channel]) {
-                return mapping[channel]
-            }
-        }
-
-        return undefined;
-    }
-
     sendMessage(message) {
-        if (message.channel) {
-            var mappedChannel = this.config.channels.find(channel => channel.id === message.channel);
+        var slackMessage = {
+            username: message.command ? message.command : message.username,
+            parse: "full",
+            icon_url: message.icon ? message.icon : message.context.user_icon
+        };
+
+        if (message.context.channel) {
+            let mappedChannel = this.config.channels.find(channel => channel.id === message.context.channel);
 
             if (!mappedChannel) {
                 // Not in our mapping, ignore
                 return;
             }
 
-            var slackChannel = this.channels.find(channel => channel.name === mappedChannel.slack)
+            let slackChannel = this.channels.find(channel => channel.name === mappedChannel.slack)
 
             if (!slackChannel) {
                 // No mapping for selected channel for slack, ignore
                 return;
             }
+
+            slackMessage.channel = slackChannel.id;
+        } else {
+            slackMessage.channel = message.context.slack.channel;
         }
-
-        var data = {
-            username: message.username,
-            parse: 'full',
-            icon_url: message.icon,
-        };
-
-        var replyText = response.text;
 
         if (message.attachment) {
             // Replacing our message with our cool attachment
-            replyText = "";
-            data.attachments = [ message.attachment ];
+            slackMessage.attachments = [ message.attachment ];
+        } else {
+            slackMessage.text = message.text;
+        }
+
+        if (message.bridge && message.context.slack) {
+            if (slackMessage.channel === message.context.slack.channel) {
+                // We're bridging and the source equals the dest, abort
+                return;
+            }
         }
         
-        this.slackweb.chat.postMessage(slackChannel.id, replyText, data);
+        this.slackweb.chat.postMessage(slackMessage);
 
         /*var data = {
             username: author,

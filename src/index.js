@@ -1,25 +1,26 @@
 #!/usr/bin/env node
 
-var Bridge = require('./bridge');
-var botcommands = require('./botcommands');
-var DiscordBot = require("./discordbot")
-var SlackBot = require("./slackbot")
+const Bridge = require('./bridge');
+const botcommands = require('./botcommands');
+const DiscordBot = require("./discordbot")
+const SlackBot = require("./slackbot")
 
 createBots = function(configuration) {
-  var bridge = new Bridge();
+  const bridge = new Bridge();
 
   // The config file can be both an array and an object
   if (Array.isArray(configuration)) {
     for (config of configuration) {
       if (config.bot === "discord") {
-        var bot = new DiscordBot(config);
+        let bot = new DiscordBot(config);
+        bridge.addBot(bot);
       } else if (config.bot === "slack") {
-        var bot = new SlackBot(config);
-      }
-
-      bridge.addBot(bot);
-      bridge.start();
+        let bot = new SlackBot(config);
+        bridge.addBot(bot);
+      }     
     };
+
+    bridge.start();
   } else {
     throw "Invalid format of configuration file";
   }
