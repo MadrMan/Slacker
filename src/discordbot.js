@@ -49,7 +49,17 @@ class DiscordBot {
     }
 
     sendChannelMessage(channel, message) {
-        channel.send(`<${message.command ? message.command : message.username}> ${message.text}`).catch(logger.error);
+        Promise.all(message.context.files ? message.context.files : []).then(files =>
+            channel.send({
+                content: `<${message.command ? message.command : message.username}> ${message.text}`,
+                files: files?.map(f => {
+                    return {
+                        attachment: f.file,
+                        name: f.name
+                    }
+                })
+            })
+        ).catch(logger.error);
     }
 
     sendMessage(message) {

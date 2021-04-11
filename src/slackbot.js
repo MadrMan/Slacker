@@ -1,6 +1,7 @@
 var SlackRtmClient = require('@slack/rtm-api').RTMClient;
 var SlackWebClient = require('@slack/web-api').WebClient;
 var logger = require('./logging');
+var https = require('https');
 
 class SlackBot {
     constructor(config) {
@@ -25,6 +26,10 @@ class SlackBot {
                     return;
                 }
 
+                if (message.subtype === "message_changed") {
+                    return;
+                }
+
                 let user = this.users.find(user => user.id === message.user);
                 let slackChannel = this.channels.find(channel => channel.id === message.channel);
 
@@ -37,12 +42,34 @@ class SlackBot {
                     }
                 }
 
+                let files = message.files?.map(f => new Promise((resolve, reject) => {
+                    https.get(f.url_private, {
+                        headers: {
+                            Authorization: `Bearer ${this.config.token}`
+                        }
+                    }, res => {
+                        if (res.statusCode !== 200) {
+                            reject("Failed to download");
+                            return;
+                        }
+
+                        let data = [];
+                        res.on("data", chunk => data.push(chunk));
+                        res.on('end', () => resolve({
+                            file: Buffer.concat(data),
+                            name: f.name
+                        }));
+                        res.on("error", err => reject(err));
+                    });
+                }));
+
                 let username = user ? user.real_name : "???";
                 this.messageReceived(this, username, {
                     channel: channel,
+                    files: files,
                     slack: { 
                         channel: message.channel
-                    }}, message.text);
+                    }}, message.text ? message.text : message.message.text);
             }
         });
 
