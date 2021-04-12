@@ -69,7 +69,7 @@ class SlackBot {
                     files: files,
                     slack: { 
                         channel: message.channel
-                    }}, message.text ? message.text : message.message.text);
+                    }}, message.text ? message.text : message.message?.text);
             }
         });
 

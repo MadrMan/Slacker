@@ -51,7 +51,7 @@ class DiscordBot {
     sendChannelMessage(channel, message) {
         Promise.all(message.context.files ? message.context.files : []).then(files =>
             channel.send({
-                content: `<${message.command ? message.command : message.username}> ${message.text}`,
+                content: `<${message.command ? message.command : message.username}> ${message.text ? message.text : ""}`,
                 files: files?.map(f => {
                     return {
                         attachment: f.file,

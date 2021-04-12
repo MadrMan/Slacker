@@ -124,7 +124,7 @@ exports.initializeIntervals = function(callback) {
 }
 
 exports.processUserCommand = function(text, callback) {
-	if(text[0] != '!') return false;
+	if(!text || text[0] != '!') return false;
 
 	var sep = text.toLowerCase();
 	var space = sep.indexOf(' ');
