@@ -48,18 +48,48 @@ class DiscordBot {
         this.client.login(this.config.token);
     }
 
-    sendChannelMessage(channel, message) {
-        Promise.all(message.context.files ? message.context.files : []).then(files =>
-            channel.send({
-                content: `<${message.command ? message.command : message.username}> ${message.text ? message.text : ""}`,
-                files: files?.map(f => {
-                    return {
-                        attachment: f.file,
-                        name: f.name
-                    }
+    async getWebhookForChannel(mappedChannel, guildChannel) {
+        if (!mappedChannel.webhook) {
+            mappedChannel.webhook = (async() => {
+                let hooks = await guildChannel.fetchWebhooks();
+                let webhook = hooks.find(v => v.owner.id === this.client.user.id);
+
+                if (webhook) {
+                    return webhook;
+                }
+
+                return guildChannel.createWebhook(this.config.botname, {
+                    reason: "Bridging channel"
+                });
+            })();
+        }
+
+        return mappedChannel.webhook;
+    }
+
+    sendChannelMessage(channel, webhook, message) {
+        Promise.all(message.context.files ? message.context.files : []).then(files => {
+            let sender = message.command ? message.command : message.username;
+            let attach = files?.map(f => {
+                return {
+                    attachment: f.file,
+                    name: f.name
+                }
+            });
+
+            if (webhook) {
+                webhook.send(message.text, {
+                    username: sender,
+                    avatarURL: message.icon ? message.icon : message.context.user_icon,
+                    files: attach
+                });
+            } else {
+                channel.send({
+                    content: `<${sender}> ${message.text ? message.text : ""}`,
+                    files: attach
                 })
-            })
-        ).catch(logger.error);
+            }
+        }).catch(logger.error);
     }
 
     sendMessage(message) {
@@ -80,12 +110,13 @@ class DiscordBot {
                             }
                         }
 
-                        this.sendChannelMessage(guildChannel, message);
+                        let webhook = this.getWebhookForChannel(mappedChannel, guildChannel);
+                        webhook.then(hook => this.sendChannelMessage(guildChannel, hook, message));
                     }
                 }).catch(logger.error);
             }
         } else {
-            this.sendChannelMessage(message.context.discord.channel, message);
+            this.sendChannelMessage(message.context.discord.channel, undefined, message);
         }
     }
 }

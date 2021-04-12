@@ -30,6 +30,10 @@ class SlackBot {
                     return;
                 }
 
+                if (message.hidden) {
+                    return;
+                }
+
                 let user = this.users.find(user => user.id === message.user);
                 let slackChannel = this.channels.find(channel => channel.id === message.channel);
 
@@ -67,6 +71,7 @@ class SlackBot {
                 this.messageReceived(this, username, {
                     channel: channel,
                     files: files,
+                    user_icon: user.profile?.image_512,
                     slack: { 
                         channel: message.channel
                     }}, message.text ? message.text : message.message?.text);
