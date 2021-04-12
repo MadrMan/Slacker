@@ -37,7 +37,7 @@ class DiscordBot {
 
             this.messageReceived(this, msg.member ? msg.member.displayName : msg.author.username, {
                 channel: channel,
-                user_icon: msg.author.avatarURL({
+                user_icon: msg.author.displayAvatarURL({
                     format: 'png'
                 }),
                 discord: { 
@@ -58,7 +58,7 @@ class DiscordBot {
                     return webhook;
                 }
 
-                return guildChannel.createWebhook(this.config.botname, {
+                return guildChannel.createWebhook(this.client.user.username, {
                     reason: "Bridging channel"
                 });
             })();
