@@ -1,7 +1,7 @@
-var SlackRtmClient = require('@slack/rtm-api').RTMClient;
-var SlackWebClient = require('@slack/web-api').WebClient;
-var logger = require('./logging');
-var https = require('https');
+const SlackRtmClient = require('@slack/rtm-api').RTMClient;
+const SlackWebClient = require('@slack/web-api').WebClient;
+const logger = require('./logging');
+const https = require('https');
 
 class SlackBot {
     constructor(config) {
@@ -129,11 +129,13 @@ class SlackBot {
             slackMessage.channel = message.context.slack.channel;
         }
 
+        slackMessage.text = message.text ? message.text : " ";
+
         if (message.attachment) {
             // Replacing our message with our cool attachment
             slackMessage.attachments = [ message.attachment ];
         } else {
-            slackMessage.text = message.text;
+            
         }
 
         if (message.bridge && message.context.slack) {
@@ -143,7 +145,55 @@ class SlackBot {
             }
         }
         
-        this.slackweb.chat.postMessage(slackMessage);
+        /*if (message.context.files) {
+            Promise.all(message.context.files).then(files => {
+                files.map((f, i) =>
+                    this.slackweb.files.upload({
+                        channels: slackMessage.channel,
+                        filename: f.name,
+                        file: f.file,
+                        initial_comment: (i === 0) ? message.text : undefined
+                    }))
+            })
+        } else {
+            this.slackweb.chat.postMessage(slackMessage);
+        }*/
+
+       let fileBlocks = Promise.all(message.context.files ? message.context.files : []).then(files => {
+            return files.map(f => {
+                return {
+                    image_url: f.original_url
+                }
+            });
+
+            /*let uploads = Promise.all(files.map(f =>
+                this.slackweb.files.upload({
+                    filename: f.name,
+                    file: f.file
+                })))
+            return uploads.then(r => r.filter(r => r.ok).map(r => {
+                return {
+                    type: "image",
+                    image_url: r.file.url_private,
+                    alt_text: r.file.name,
+                    title: {
+                        type: "plain_text",
+                        text: r.file.name
+                    }
+                }
+            }));*/
+        }).catch(logger.error);
+
+        fileBlocks.then(blocks => {
+            if (blocks && blocks.length) {
+                //slackMessage.text += blocks.map(f => ` <${f.image_url}|${f.title.text}>`).join(' ');
+                slackMessage.text += blocks.map(f => f.image_url).join(' ');
+                slackMessage.mrkdwn = true;
+                slackMessage.parse = "full";
+            }
+
+            this.slackweb.chat.postMessage(slackMessage);
+        });
 
         /*var data = {
             username: author,

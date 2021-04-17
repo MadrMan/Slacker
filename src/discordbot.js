@@ -1,5 +1,6 @@
 const { Client, Intents } = require("discord.js")
 const logger = require("./logging")
+const https = require('https');
 
 class DiscordBot {
     constructor(config) {
@@ -35,8 +36,27 @@ class DiscordBot {
                 }
             }
 
+            let files = msg.attachments.map(f => new Promise((resolve, reject) => {
+                https.get(f.url, res => {
+                    if (res.statusCode !== 200) {
+                        reject("Failed to download");
+                        return;
+                    }
+
+                    let data = [];
+                    res.on("data", chunk => data.push(chunk));
+                    res.on('end', () => resolve({
+                        file: Buffer.concat(data),
+                        name: f.name,
+                        original_url: f.url
+                    }));
+                    res.on("error", err => reject(err));
+                });
+            }));
+
             this.messageReceived(this, msg.member ? msg.member.displayName : msg.author.username, {
                 channel: channel,
+                files: files,
                 user_icon: msg.author.displayAvatarURL({
                     format: 'png'
                 }),
