@@ -1,7 +1,7 @@
 var async = require('async');
 var http = require('http');
 var https = require('https');
-var logger = require('winston');
+var logger = require('./logging');
 var apikeys = require('./apikeys');
 var request = require('request');
 

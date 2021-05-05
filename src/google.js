@@ -1,7 +1,7 @@
 var logger = require('winston');
 var pup = require("puppeteer");
 var url = require("url");
-var logger = require("winston");
+var logger = require("./logging");
 var jsdom = require("jsdom");
 
 async function screenshot(page)
@@ -103,31 +103,36 @@ function handleGoogle(r, text, callback)
 	
 	(async() => {
 		const browser = await pup.launch();
-		const page = await browser.newPage();
-		let success = false;
 
-		try
-		{
-			success = await handleSearching(r, text, page);
-		} catch(err) {
-			r.error = err + " | " + await screenshot(page);
+		try {
+			const page = await browser.newPage();
+			let success = false;
+	
+			try
+			{
+				success = await handleSearching(r, text, page);
+			} catch(err) {
+				r.error = err + " | " + await screenshot(page);
+			}
+	
+			logger.error("Result of search: " + r.text + " = success: " + success);
+	
+			callback(r);
+	
+			if (success) {
+				// Forward to stop bot check
+				let resultLink = await page.waitForSelector(".r a");
+				await resultLink.click();
+				await page.waitForNavigation({waitUntil: 'load'});
+	
+				// Verify
+				await screenshot(page);
+			}
+		} catch(ferr) {
+			logger.error("Google failure: " + ferr);
+		} finally {
+			await browser.close();
 		}
-
-		logger.error("Result of search: " + r.text + " = success: " + success);
-
-		callback(r);
-
-		if (success) {
-			// Forward to stop bot check
-			let resultLink = await page.waitForSelector(".r a");
-			await resultLink.click();
-			await page.waitForNavigation({waitUntil: 'load'});
-
-			// Verify
-			await screenshot(page);
-		}
-
-		await browser.close();
 	})();
 }
 

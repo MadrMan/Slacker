@@ -1,3 +1,5 @@
 node_modules/
-package-lock.json
-slack-irc/lib/apikeys.js
+.idea
+/src/apikeys.js
+console.log
+config.js

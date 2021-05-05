@@ -1,6 +1,6 @@
 "use strict";
 
-const logger = require('winston');
+const logger = require('./logging');
 const url    = require("url");
 const https  = require("https");
 
