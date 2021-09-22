@@ -2,6 +2,8 @@ const { Client, Intents } = require("discord.js")
 const logger = require("./logging")
 const https = require('https');
 
+const mentionRegex = /<@!(\w+)>/g//
+
 class DiscordBot {
     constructor(config) {
         this.config = config;
@@ -54,15 +56,32 @@ class DiscordBot {
                 });
             }));
 
-            this.messageReceived(this, msg.member ? msg.member.displayName : msg.author.username, {
-                channel: channel,
-                files: files,
-                user_icon: msg.author.displayAvatarURL({
-                    format: 'png'
-                }),
-                discord: { 
-                    channel: msg.channel
-                }}, msg.content);
+            const that = this;
+            const replaceMentions = function(message) {
+                const arr = [...message.matchAll(mentionRegex)];
+                const clientPromises = arr.map(match => that.client.users.fetch(match[1]).then(user => [user, match[0]]));
+
+                return Promise.all(clientPromises).then((replacing) => {
+                    let modifiedMessage = message;
+                    replacing.map(replace => {
+                        const [user, match] = replace;
+                        modifiedMessage = modifiedMessage.replace(match, `@${user.username}`);
+                    })
+                    return modifiedMessage;
+                });
+            }
+
+            replaceMentions(msg.content).then((content) => {
+                that.messageReceived(this, msg.member ? msg.member.displayName : msg.author.username, {
+                    channel: channel,
+                    files: files,
+                    user_icon: msg.author.displayAvatarURL({
+                        format: 'png'
+                    }),
+                    discord: {
+                        channel: msg.channel
+                    }}, content);
+            })
         });
 
         this.client.login(this.config.token);
