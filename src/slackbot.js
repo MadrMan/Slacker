@@ -3,6 +3,8 @@ const SlackWebClient = require('@slack/web-api').WebClient;
 const logger = require('./logging');
 const https = require('https');
 
+const mentionRegex = /<@(\w+)>/g//
+
 class SlackBot {
     constructor(config) {
         this.config = config;
@@ -46,6 +48,11 @@ class SlackBot {
                     }
                 }
 
+                const that = this;
+                const replaceMentions = function(message) {
+                    return message.replaceAll(mentionRegex,(match, userId) => `@${that.users.find(user => user.id === userId)?.profile.real_name_normalized || "???"}`)
+                }
+
                 let files = message.files?.map(f => new Promise((resolve, reject) => {
                     https.get(f.url_private, {
                         headers: {
@@ -68,13 +75,16 @@ class SlackBot {
                 }));
 
                 let username = user ? user.real_name : "???";
+                const textWithMentions = replaceMentions(message.text ? message.text : message.message?.text);
                 this.messageReceived(this, username, {
                     channel: channel,
                     files: files,
                     user_icon: user.profile?.image_512,
                     slack: { 
                         channel: message.channel
-                    }}, message.text ? message.text : message.message?.text);
+                    }},
+                    textWithMentions
+                );
             }
         });
 
@@ -203,6 +213,7 @@ class SlackBot {
           logger.debug('Sending message to Slack', text, channel, '->', slackChannelName);
           this.slackweb.chat.postMessage(slackChannel.id, text, data);*/
     }
+
 }
 
 module.exports = SlackBot;
