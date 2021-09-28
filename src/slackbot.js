@@ -50,7 +50,7 @@ class SlackBot {
 
                 const that = this;
                 const replaceMentions = function(message) {
-                    return message.replaceAll(mentionRegex,(match, userId) => `@${that.users.find(user => user.id === userId)?.profile.real_name_normalized || "???"}`)
+                    return message?.replaceAll(mentionRegex,(match, userId) => `@${that.users.find(user => user.id === userId)?.profile.real_name_normalized || "???"}`)
                 }
 
                 let files = message.files?.map(f => new Promise((resolve, reject) => {
