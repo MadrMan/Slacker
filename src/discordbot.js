@@ -117,13 +117,13 @@ class DiscordBot {
             });
 
             if (webhook) {
-                await webhook.send(message.text, {
+                return webhook.send(message.text, {
                     username: sender,
                     avatarURL: message.icon ? message.icon : message.context.user_icon,
                     files: attach
                 });
             } else {
-                await channel.send({
+                return channel.send({
                     content: `<${sender}> ${message.text ? message.text : ""}`,
                     files: attach
                 })
