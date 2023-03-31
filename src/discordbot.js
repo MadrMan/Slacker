@@ -2,7 +2,19 @@ const { Client, Intents } = require("discord.js")
 const logger = require("./logging")
 const https = require('https');
 
-const mentionRegex = /<@!(\w+)>/g//
+const mentionRegex = /<@!(\w+)>/g//;
+const slackLinkRegex = /<http([^>|]+)\|?([^>]+)?>/g//;
+
+const replaceLinks = function(message) {
+    const matches = [...message.matchAll(slackLinkRegex)];
+    let modifiedMessage = message;
+    matches.forEach(match => {
+        const url = `http${match[1]}`;
+        const name = match[2] || url;
+        modifiedMessage = modifiedMessage.replace(match[0], `[${name}](${url})`);
+    });
+    return modifiedMessage;
+}
 
 class DiscordBot {
     constructor(config) {
@@ -80,7 +92,8 @@ class DiscordBot {
                     }),
                     discord: {
                         channel: msg.channel
-                    }}, content);
+                    }},
+                    content);
             })
         });
 
@@ -107,6 +120,10 @@ class DiscordBot {
     }
 
     sendChannelMessage(channel, webhook, message) {
+
+        const messageText = replaceLinks(message.text);
+
+
         Promise.all(message.context.files ? message.context.files : []).then(files => {
             let sender = message.command ? message.command : message.username;
             let attach = files?.map(f => {
@@ -117,14 +134,14 @@ class DiscordBot {
             });
 
             if (webhook) {
-                return webhook.send(message.text, {
+                return webhook.send(messageText, {
                     username: sender,
                     avatarURL: message.icon ? message.icon : message.context.user_icon,
                     files: attach
                 });
             } else {
                 return channel.send({
-                    content: `<${sender}> ${message.text ? message.text : ""}`,
+                    content: `<${sender}> ${messageText ? messageText : ""}`,
                     files: attach
                 })
             }
