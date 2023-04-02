@@ -6,6 +6,7 @@ const mentionRegex = /<@!(\w+)>/g//;
 const slackLinkRegex = /<http([^>|]+)\|?([^>]+)?>/g//;
 
 const replaceLinks = function(message) {
+    if(!message) return;
     const matches = [...message.matchAll(slackLinkRegex)];
     let modifiedMessage = message;
     matches.forEach(match => {
