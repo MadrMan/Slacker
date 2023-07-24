@@ -3,15 +3,15 @@ const logger = require("./logging")
 const https = require('https');
 
 const mentionRegex = /<@!(\w+)>/g//;
-const slackLinkRegex = /<http([^>|]+)\|?([^>]+)?>/g//;
+const slackLinkRegex = /^\[([^\]]+)\]\(([^\)].+)\)/g//;
 
 const replaceLinks = function(message) {
     if(!message) return;
     const matches = [...message.matchAll(slackLinkRegex)];
     let modifiedMessage = message;
     matches.forEach(match => {
-        const url = `http${match[1]}`;
-        const name = match[2] || url;
+        const url = `${match[2]}`;
+        const name = match[1] || url;
         modifiedMessage = modifiedMessage.replace(match[0], `[${name}](${url})`);
     });
     return modifiedMessage;
