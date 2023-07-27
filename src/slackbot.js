@@ -1,5 +1,4 @@
-const SlackRtmClient = require('@slack/rtm-api').RTMClient;
-const SlackWebClient = require('@slack/web-api').WebClient;
+const Slack = require('@slack/bolt').App;
 const logger = require('./logging');
 const https = require('https');
 
@@ -12,16 +11,15 @@ class SlackBot {
         this.channels = [];
     }
 
-    start() {
-        this.slack = new SlackRtmClient(this.config.token, {
-            logLevel: 'error',
-            autoReconnect: true,
-            autoMark: true    
+    async start() {
+        this.slack = new Slack({
+            signingSecret: this.config.signingSecret,
+            appToken: this.config.appToken,
+            token: this.config.token,
+            socketMode: true
         }); 
 
-        this.slackweb = new SlackWebClient(this.config.token);
-
-        this.slack.on('message', message => {
+        this.slack.message(async ({ message }) => {
             // Ignore bot messages and people leaving/joining
             if (message.type === 'message') {
                 if (message.subtype === "bot_message") {
@@ -50,7 +48,7 @@ class SlackBot {
 
                 const that = this;
                 const replaceMentions = function(message) {
-                    return message?.replaceAll(mentionRegex,(match, userId) => `@${that.users.find(user => user.id === userId)?.profile.real_name_normalized || "???"}`)
+                    return message?.replaceAll(mentionRegex,(match, userId) => `@${that.users.find(user => user.id === userId)?.profile?.real_name_normalized || "???"}`)
                 }
 
                 let files = message.files?.map(f => new Promise((resolve, reject) => {
@@ -88,7 +86,7 @@ class SlackBot {
             }
         });
 
-        this.slackweb.users.list().then(result => {
+        this.slack.client.users.list().then(result => {
             if (!result.ok) {
                 logger.error("Slackweb user list() failed");
             }
@@ -98,7 +96,7 @@ class SlackBot {
             }
         });
 
-        this.slackweb.conversations.list().then(result => {
+        this.slack.client.conversations.list().then(result => {
             if (!result.ok) {
                 logger.error("Slackweb channel list() failed");
             }
@@ -109,10 +107,10 @@ class SlackBot {
         });
         
         // Done loading data, connect RTM and start getting callbacks
-        this.slack.start();
+        await this.slack.start();
     }
 
-    sendMessage(message) {
+    async sendMessage(message) {
         var slackMessage = {
             username: message.command ? message.command : message.username,
             parse: "full",
@@ -155,65 +153,62 @@ class SlackBot {
             }
         }
         
-        /*if (message.context.files) {
-            Promise.all(message.context.files).then(files => {
-                files.map((f, i) =>
-                    this.slackweb.files.upload({
-                        channels: slackMessage.channel,
-                        filename: f.name,
-                        file: f.file,
-                        initial_comment: (i === 0) ? message.text : undefined
-                    }))
-            })
-        } else {
-            this.slackweb.chat.postMessage(slackMessage);
-        }*/
+        //if (message.context.files) {
+        //    Promise.all(message.context.files).then(files => {
+        //        files.map((f, i) =>
+        //            this.slackweb.files.upload({
+        //                channels: slackMessage.channel,
+        //                filename: f.name,
+        //                file: f.file,
+        //                initial_comment: (i === 0) ? message.text : undefined
+        //            }))
+        //    })
+        //} else {
+        //    this.slackweb.chat.postMessage(slackMessage);
+        //}
 
-       let fileBlocks = Promise.all(message.context.files ? message.context.files : []).then(files => {
+       let fileBlocks = await Promise.all(message.context.files ? message.context.files : []).then(files => {
             return files.map(f => {
                 return {
                     image_url: f.original_url
                 }
             });
 
-            /*let uploads = Promise.all(files.map(f =>
-                this.slackweb.files.upload({
-                    filename: f.name,
-                    file: f.file
-                })))
-            return uploads.then(r => r.filter(r => r.ok).map(r => {
-                return {
-                    type: "image",
-                    image_url: r.file.url_private,
-                    alt_text: r.file.name,
-                    title: {
-                        type: "plain_text",
-                        text: r.file.name
-                    }
-                }
-            }));*/
+            //let uploads = Promise.all(files.map(f =>
+            //    this.slackweb.files.upload({
+            //        filename: f.name,
+            //        file: f.file
+            //    })))
+            //return uploads.then(r => r.filter(r => r.ok).map(r => {
+            //    return {
+            //        type: "image",
+            //        image_url: r.file.url_private,
+            //        alt_text: r.file.name,
+            //        title: {
+            //            type: "plain_text",
+            //            text: r.file.name
+            //        }
+            //    }
+            //}));
         }).catch(logger.error);
 
-        fileBlocks.then(blocks => {
-            if (blocks && blocks.length) {
-                //slackMessage.text += blocks.map(f => ` <${f.image_url}|${f.title.text}>`).join(' ');
-                slackMessage.text += blocks.map(f => f.image_url).join(' ');
-                slackMessage.mrkdwn = true;
-                slackMessage.parse = "full";
-            }
+        if (fileBlocks && fileBlocks.length) {
+            //slackMessage.text += blocks.map(f => ` <${f.image_url}|${f.title.text}>`).join(' ');
+            slackMessage.text += fileBlocks.map(f => f.image_url).join(' ');
+            slackMessage.mrkdwn = true;
+            slackMessage.parse = "full";
+        }
 
-            this.slackweb.chat.postMessage(slackMessage);
-        });
+        await this.slack.client.chat.postMessage(slackMessage);
 
-        /*var data = {
-            username: author,
-            parse: 'full',
-            icon_url: 'http://api.adorable.io/avatars/48/' + author + '.png'
-          };
-          logger.debug('Sending message to Slack', text, channel, '->', slackChannelName);
-          this.slackweb.chat.postMessage(slackChannel.id, text, data);*/
+        //var data = {
+        //    username: author,
+        //    parse: 'full',
+        //    icon_url: 'http://api.adorable.io/avatars/48/' + author + '.png'
+        //  };
+        //  logger.debug('Sending message to Slack', text, channel, '->', slackChannelName);
+        //  this.slackweb.chat.postMessage(slackChannel.id, text, data);
     }
-
 }
 
 module.exports = SlackBot;

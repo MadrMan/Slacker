@@ -5,7 +5,7 @@ const botcommands = require('./botcommands');
 const DiscordBot = require("./discordbot")
 const SlackBot = require("./slackbot")
 
-createBots = function(configuration) {
+createBots = async function(configuration) {
   const bridge = new Bridge();
 
   // The config file can be both an array and an object
@@ -20,7 +20,7 @@ createBots = function(configuration) {
       }     
     };
 
-    bridge.start();
+    await bridge.start();
   } else {
     throw "Invalid format of configuration file";
   }

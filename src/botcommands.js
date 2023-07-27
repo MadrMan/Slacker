@@ -5,20 +5,20 @@ var apikeys = require('./apikeys');
 
 const { exec } = require('child_process');
 
-function handleSource(r, text, callback) {
+async function handleSource(r, text, callback) {
 	r.text = "https://github.com/MadrMan/Slacker";
 	r.icon = "https://assets-cdn.github.com/images/modules/logos_page/Octocat.png";
 
-	callback(r);
+	await callback(r);
 }
 
-function handleEcho(r, text, callback) {
+async function handleEcho(r, text, callback) {
 	r.text = text;
 
-	callback(r);
+	await callback(r);
 }
 
-function handlePull(r, text, callback) {
+async function handlePull(r, text, callback) {
 	r.icon = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Octicons-git-pull-request.svg/200px-Octicons-git-pull-request.svg.png";
 
 	exec("git pull --ff-only", (err, stdout, stderr) => {
@@ -47,20 +47,20 @@ function handlePull(r, text, callback) {
 	});
 }
 
-function handleStatus(r, text, callback) {
+async function handleStatus(r, text, callback) {
 	r.text = "NO idea";
 	r.icon = "https://image.flaticon.com/icons/png/512/36/36601.png";
 
-	callback(r);
+	await callback(r);
 }
 
 var lastError;
-function handleError(r, text, callback) {
+async function handleError(r, text, callback) {
 	r.icon = "http://webiconspng.com/wp-content/uploads/2017/09/Explosion-PNG-Image-63024.png";
 	r.text = "No logged error for last command";
 	if (lastError)
 		r.text = "ERROR: " + lastError;
-	callback(r);
+	await callback(r);
 }
 
 var commandList = {
@@ -123,7 +123,7 @@ exports.initializeIntervals = function(callback) {
 	}
 }
 
-exports.processUserCommand = function(text, callback) {
+exports.processUserCommand = async function(text, callback) {
 	if(!text || text[0] != '!') return false;
 
 	var sep = text.toLowerCase();
@@ -136,10 +136,10 @@ exports.processUserCommand = function(text, callback) {
 	if (handler)
 	{
 		logger.error("Handling command: " + sep[0]);
-		handler(r, sep.length > 1 ? sep[1] : null, r => {
+		await handler(r, sep.length > 1 ? sep[1] : null, async r => {
 			lastError = r.error;
 			if (r.error) logger.error(r.error);
-			callback(r);
+			await callback(r);
 		});
 
 		return true;

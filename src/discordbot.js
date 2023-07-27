@@ -1,4 +1,4 @@
-const { Client, Intents } = require("discord.js")
+const { Client, GatewayIntentBits, Events } = require("discord.js")
 const logger = require("./logging")
 const https = require('https');
 
@@ -24,14 +24,18 @@ class DiscordBot {
 
     start() {
         this.client = new Client({
-            intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES]
+            intents: [
+                GatewayIntentBits.Guilds,
+                GatewayIntentBits.GuildMessages, 
+                GatewayIntentBits.MessageContent
+            ]
         });
 
-        this.client.on('ready', () => {
+        this.client.on(Events.ClientReady, () => {
             logger.info("Discord ready");
         });
 
-        this.client.on('message', msg => {
+        this.client.on(Events.MessageCreate, msg => {
             // If we found a channel, map it to the mapping
             if  (msg.author.bot || msg.author.id === this.client.user.id) {
                 return;
@@ -69,23 +73,24 @@ class DiscordBot {
                 });
             }));
 
-            const that = this;
-            const replaceMentions = function(message) {
+            const replaceMentions = async message => {
                 const arr = [...message.matchAll(mentionRegex)];
-                const clientPromises = arr.map(match => that.client.users.fetch(match[1]).then(user => [user, match[0]]));
+                const userPromises = arr.map(match => this.client.users.fetch(match[1]).then(user => [user, match[0]]))
+                const users = await Promise.all(userPromises);
 
-                return Promise.all(clientPromises).then((replacing) => {
-                    let modifiedMessage = message;
-                    replacing.map(replace => {
-                        const [user, match] = replace;
-                        modifiedMessage = modifiedMessage.replace(match, `@${user.username}`);
-                    })
-                    return modifiedMessage;
-                });
+                let modifiedMessage = message;
+                users.map(async replace => {
+                    const [user, match] = replace;
+                    modifiedMessage = modifiedMessage.replace(match, `@${user.username}`);
+                })
+
+                return modifiedMessage;
             }
 
-            replaceMentions(msg.content).then((content) => {
-                that.messageReceived(this, msg.member ? msg.member.displayName : msg.author.username, {
+            (async() => {
+                const content = await replaceMentions(msg.content);
+
+                this.messageReceived(this, msg.member ? msg.member.displayName : msg.author.username, {
                     channel: channel,
                     files: files,
                     user_icon: msg.author.displayAvatarURL({
@@ -95,7 +100,7 @@ class DiscordBot {
                         channel: msg.channel
                     }},
                     content);
-            })
+            })();
         });
 
         this.client.login(this.config.token);
@@ -105,7 +110,7 @@ class DiscordBot {
         if (!mappedChannel.webhook) {
             mappedChannel.webhook = (async() => {
                 let hooks = await guildChannel.fetchWebhooks();
-                let webhook = hooks.find(v => v.owner.id === this.client.user.id);
+                let webhook = hooks.find(v => v.owner && v.owner.id === this.client.user.id);
 
                 if (webhook) {
                     return webhook;
@@ -121,9 +126,7 @@ class DiscordBot {
     }
 
     sendChannelMessage(channel, webhook, message) {
-
         const messageText = replaceLinks(message.text);
-
 
         Promise.all(message.context.files ? message.context.files : []).then(files => {
             let sender = message.command ? message.command : message.username;
@@ -135,7 +138,8 @@ class DiscordBot {
             });
 
             if (webhook) {
-                return webhook.send(messageText, {
+                return webhook.send({
+                    content: messageText,
                     username: sender,
                     avatarURL: message.icon ? message.icon : message.context.user_icon,
                     files: attach
@@ -149,28 +153,29 @@ class DiscordBot {
         }).catch(logger.error);
     }
 
-    sendMessage(message) {
+    async sendMessage(message) {
         if (message.context.channel) {
             for (let guild of this.config.guilds) {
                 let mappedChannel = guild.channels.find(channel => channel.id === message.context.channel);
 
-                this.client.guilds.fetch(guild.id).then(discordGuild => {
-                    let guildChannel = discordGuild.channels.cache.find((v, k) => {
-                        return v.isText() && v.name === mappedChannel.discord;
-                    });
+                const discordGuild = await this.client.guilds.fetch(guild.id);
+                const channelCache = discordGuild.channels.cache;
 
-                    if (guildChannel) {
-                        if (message.bridge && message.context.discord) {
-                            if (guildChannel.id === message.context.discord.channel.id) {
-                                // Don't echo back to bridge users
-                                return;
-                            }
+                const guildChannel = [...channelCache.values()].find(v => {
+                    return v.isTextBased() && v.name === mappedChannel.discord;
+                });
+
+                if (guildChannel) {
+                    if (message.bridge && message.context.discord) {
+                        if (guildChannel.id === message.context.discord.channel.id) {
+                            // Don't echo back to bridge users
+                            return;
                         }
-
-                        let webhook = this.getWebhookForChannel(mappedChannel, guildChannel);
-                        webhook.then(hook => this.sendChannelMessage(guildChannel, hook, message));
                     }
-                }).catch(logger.error);
+
+                    const webhook = await this.getWebhookForChannel(mappedChannel, guildChannel);
+                    this.sendChannelMessage(guildChannel, webhook, message);
+                }
             }
         } else {
             this.sendChannelMessage(message.context.discord.channel, undefined, message);

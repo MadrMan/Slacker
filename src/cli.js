@@ -5,7 +5,7 @@ var path = require('path');
 var checkEnv = require('check-env');
 var logger = require('./logging')
 
-function run(createBots) {
+async function run(createBots) {
   program
     .version(require('../package.json').version)
     .option('-t, --test <command>', "Run a command locally.")
@@ -27,7 +27,7 @@ function run(createBots) {
 
     var configFile = require(config);
 
-    createBots(configFile);
+    await createBots(configFile);
   }
   else
   {

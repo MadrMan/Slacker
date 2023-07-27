@@ -11,18 +11,18 @@ class Bridge
         this.bots.push(bot);
     }
 
-    start() {
+    async start() {
         for (let bot of this.bots) {
             bot.messageReceived = this.messageReceived.bind(this);
-            bot.start();
+            await bot.start();
         }
 
-        botcommands.initializeIntervals(response => {
-            messageOut(undefined, response);
+        botcommands.initializeIntervals(async response => {
+            await messageOut(undefined, response);
         });
     }
 
-    messageReceived(bot, username, context, message) {
+    async messageReceived(bot, username, context, message) {
         logger.debug(`Got message in ${context.channel ? context.channel : "pm"}: <${username}> ${message}`)
 
         if (context.channel)
@@ -36,22 +36,22 @@ class Bridge
                 bridge: true
             };
 
-            this.messageOut(bot, response);
+            await this.messageOut(bot, response);
         }
 
         // Then try to process it as a command
-        botcommands.processUserCommand(message, response => {
+        botcommands.processUserCommand(message, async response => {
             response.context = context;
-            this.messageOut(bot, response);
+            await this.messageOut(bot, response);
         });
     }
 
-    messageOut(bot, response) {
+    async messageOut(bot, response) {
         if (!response.context.channel) {
-            bot.sendMessage(response);
+            await bot.sendMessage(response);
         } else {
             for (let bot of this.bots) {
-                bot.sendMessage(response);
+                await bot.sendMessage(response);
             }
         }
     }

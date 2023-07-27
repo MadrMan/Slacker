@@ -165,11 +165,7 @@ function initializeIntervals(callback)
 {
 	logger.debug("Setting up twitch intervals...");
 
-	setInterval(function() {
-		twitchOnlineCheck(makeR("twitch"), null, function(r) {
-			callback(r, "#lobby");
-		});
-	}, 60 * 1000);
+	setInterval(() => twitchOnlineCheck(makeR("twitch"), null, r => callback(r, "#lobby")), 60 * 1000);
 }
 
 module.exports = {
