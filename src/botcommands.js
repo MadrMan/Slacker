@@ -4,21 +4,29 @@ var logger = require('./logging');
 var apikeys = require('./apikeys');
 
 const { exec } = require('child_process');
+var commandList = {}
 
-async function handleSource(r, text, callback) {
+commandList.source = async function handleSource(r, text, callback) {
 	r.text = "https://github.com/MadrMan/Slacker";
 	r.icon = "https://assets-cdn.github.com/images/modules/logos_page/Octocat.png";
 
 	await callback(r);
 }
 
-async function handleEcho(r, text, callback) {
+commandList.echo = async function handleEcho(r, text, callback) {
 	r.text = text;
 
 	await callback(r);
 }
 
-async function handlePull(r, text, callback) {
+commandList.help = async function handleHelp(r, text, callback) {
+	r.text = `Available commands: ${Object.keys(commandList).map(c => `!${c}`).join(", ")}`
+	r.icon = "https://www.pngfind.com/pngs/m/686-6865480_transparent-man-symbol-png-man-question-mark-icon.png";
+
+	await callback(r);
+}
+
+commandList.pull = async function handlePull(r, text, callback) {
 	r.icon = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Octicons-git-pull-request.svg/200px-Octicons-git-pull-request.svg.png";
 
 	exec("git pull --ff-only", (err, stdout, stderr) => {
@@ -47,7 +55,7 @@ async function handlePull(r, text, callback) {
 	});
 }
 
-async function handleStatus(r, text, callback) {
+commandList.status = async function handleStatus(r, text, callback) {
 	r.text = "NO idea";
 	r.icon = "https://image.flaticon.com/icons/png/512/36/36601.png";
 
@@ -55,7 +63,7 @@ async function handleStatus(r, text, callback) {
 }
 
 var lastError;
-async function handleError(r, text, callback) {
+commandList.error = async function handleError(r, text, callback) {
 	r.icon = "http://webiconspng.com/wp-content/uploads/2017/09/Explosion-PNG-Image-63024.png";
 	r.text = "No logged error for last command";
 	if (lastError)
@@ -63,13 +71,6 @@ async function handleError(r, text, callback) {
 	await callback(r);
 }
 
-var commandList = {
-	"source" : handleSource,
-	"status" : handleStatus,
-	"error" : handleError,
-	"echo" : handleEcho,
-	"pull" : handlePull
-};
 var modules = [];
 
 function registerCommandModule( moduleFile ) {
