@@ -116,7 +116,8 @@ class DiscordBot {
                     return webhook;
                 }
 
-                return guildChannel.createWebhook(this.client.user.username, {
+                return guildChannel.createWebhook({
+                    name: this.client.user.username,
                     reason: "Bridging channel"
                 });
             })();
