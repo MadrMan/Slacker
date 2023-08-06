@@ -1,21 +1,23 @@
-const { Client, GatewayIntentBits, Events } = require("discord.js")
+const { Client, GatewayIntentBits, Events, hyperlink } = require("discord.js")
 const logger = require("./logging")
 const https = require('https');
 
 const mentionRegex = /<@!(\w+)>/g//;
-const slackLinkRegex = /^\[([^\]]+)\]\(([^\)].+)\)/g//;
+const slackLinkRegex = /<http([^>|]+)\|?([^>]+)?>/g//;
 
 const replaceLinks = function(message) {
     if(!message) return;
     const matches = [...message.matchAll(slackLinkRegex)];
     let modifiedMessage = message;
     matches.forEach(match => {
-        const url = `${match[2]}`;
-        const name = match[1] || url;
-        modifiedMessage = modifiedMessage.replace(match[0], `[${name}](${url})`);
+        const url = `http${match[1]}`;
+        const impliedName = (match[2] || url);
+        const name = impliedName.startsWith('http') ? '' : impliedName;
+        modifiedMessage = modifiedMessage.replace(match[0], name ? hyperlink(name, url) : url);
     });
     return modifiedMessage;
 }
+
 
 class DiscordBot {
     constructor(config) {
