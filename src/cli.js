@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var program = require('commander');
+const { program } = require('commander');
 var path = require('path');
 var checkEnv = require('check-env');
 var logger = require('./logging')
