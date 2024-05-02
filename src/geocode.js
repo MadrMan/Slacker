@@ -1,9 +1,13 @@
 import fetch from 'node-fetch';
 import apikeys from './apikeys.js';
+import logger from'./logging.js';
 
 async function resolveGeocode(address)
 {
-    const resp = await fetch(`https://geocode.maps.co/search?q=${encodeURIComponent(address)}&api_key=${apikeys.mapsdotco}`);
+    const url = `https://geocode.maps.co/search?q=${encodeURIComponent(address)}&api_key=${apikeys.mapsdotco}`;
+    logger.error(url);
+
+    const resp = await fetch(url);
     const data = await resp.json();
 
     if (data.length  < 1) {

@@ -25,7 +25,7 @@ function getWeatherForLatLong(callback, address, lat, lng, extended = false)
 		res.on('end', () =>
 		{
 			var apijson = JSON.parse(body);
-			logger.error(apijson);
+
 			var status = apijson.cod;
 			if (status == "200")
 			{
