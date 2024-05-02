@@ -1,11 +1,11 @@
-var MathParse = require('expr-eval').Parser;
+import { Parser } from 'expr-eval';
 
 function handleCalc(r, text, callback) 
 {
 	if(!text) return;
 
 	try {
-		var expr = MathParse.parse(text);
+		var expr = Parser.parse(text);
 		r.text = expr.toString() + " = " + expr.evaluate({});
 	} catch(err) {
 		r.text = text + " = [" + err + "]";
@@ -16,7 +16,7 @@ function handleCalc(r, text, callback)
 	callback(r);
 }
 
-module.exports = {
+export default {
 	"name": "calculator",
 	"author": "MadrMan",
 	"commands": {

@@ -1,9 +1,6 @@
-var http = require('http');
-var https = require('https');
-var logger = require('./logging');
-var apikeys = require('./apikeys');
+import logger from './logging.js';
+import { exec } from 'child_process';
 
-const { exec } = require('child_process');
 var commandList = {}
 
 commandList.source = async function handleSource(r, text, callback) {
@@ -71,13 +68,26 @@ commandList.error = async function handleError(r, text, callback) {
 	await callback(r);
 }
 
-var modules = [];
+const modules = [];
 
-function registerCommandModule( moduleFile ) {
-	modules.push(require(moduleFile));
+async function registerCommandModule( moduleFile ) {
+	modules.push((await import(moduleFile)).default);
 }
 
-function loadCommandModules() {
+async function loadCommandModules() {
+	await Promise.all([
+		//registerCommandModule( './google.js' ),
+		registerCommandModule( './translate.js' ),
+		registerCommandModule( './calculator.js' ),
+		registerCommandModule( './dice.js' ),
+		registerCommandModule( './imdb.js' ),
+		registerCommandModule( './twitch.js' ),
+		registerCommandModule( './weather.js' ),
+		registerCommandModule( './theduck.js' ),
+		registerCommandModule( './brexit.js' ),
+		registerCommandModule( './geocode.js' )
+	]);
+
 	for (let m of modules) {
 		for( let k in m.commands ) {
 			if( commandList[k] != undefined && commandList[k] != null ) {
@@ -90,16 +100,6 @@ function loadCommandModules() {
 
 	logger.error("Registered a total of " + modules.length + " modules with " + Object.keys(commandList).length + " commands");
 }
-
-//registerCommandModule( './google.js' );
-registerCommandModule( './translate.js' );
-registerCommandModule( './calculator.js' );
-registerCommandModule( './dice.js' );
-registerCommandModule( './imdb.js' );
-registerCommandModule( './twitch.js' );
-registerCommandModule( './weather.js' );
-registerCommandModule( './theduck.js' );
-registerCommandModule( './brexit.js' );
 
 loadCommandModules();
 
@@ -114,7 +114,7 @@ function makeR(cmd) {
 	};
 }
 
-exports.initializeIntervals = function(callback) {
+export function initializeIntervals(callback) {
 	logger.debug("Setting up bot interval-based checks...");
 
 	for (let module in modules) {
@@ -124,7 +124,7 @@ exports.initializeIntervals = function(callback) {
 	}
 }
 
-exports.processUserCommand = async function(text, callback) {
+export async function processUserCommand(text, callback) {
 	if(!text || text[0] != '!') return false;
 
 	var sep = text.toLowerCase();

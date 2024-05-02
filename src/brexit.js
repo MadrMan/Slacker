@@ -16,7 +16,7 @@ function countdown(r, _, callback)
 	callback(r);
 }
 
-module.exports = {
+export default {
 	"name": "Brexit",
 	"author": "ElGoorf",
 	"commands": {

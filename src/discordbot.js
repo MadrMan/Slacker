@@ -1,6 +1,6 @@
-const { Client, GatewayIntentBits, Events, hyperlink } = require("discord.js")
-const logger = require("./logging")
-const https = require('https');
+import { Client, GatewayIntentBits, Events, hyperlink } from "discord.js";
+import logger from "./logging.js";
+import https from 'https';
 
 const mentionRegex = /<@!(\w+)>/g//;
 const slackLinkRegex = /<http([^>|]+)\|?([^>]+)?>/g//;
@@ -19,7 +19,7 @@ const replaceLinks = function(message) {
 }
 
 
-class DiscordBot {
+export default class DiscordBot {
     constructor(config) {
         this.config = config;
     }
@@ -185,5 +185,3 @@ class DiscordBot {
         }
     }
 }
-
-module.exports = DiscordBot;

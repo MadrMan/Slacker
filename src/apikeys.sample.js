@@ -1,4 +1,8 @@
-exports.openweathermapAPIKey = '';
-exports.googleAPIKey = '';
-exports.yandexAPIKey = '';
-exports.twitchClientID = '';
+export default {
+    openweathermapAPIKey: '',
+    googleAPIKey: '',
+    yandexAPIKey: '',
+    twitchClientID: '',
+    twitchClientSecret: '',
+    mapsdotco: '',
+};

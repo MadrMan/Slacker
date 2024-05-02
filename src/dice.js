@@ -15,7 +15,7 @@ function handleRoll(r, text, callback)
 	callback(r);
 }
 
-module.exports = {
+export default {
 	"name": "dice",
 	"author": "MadrMan",
 	"commands": {

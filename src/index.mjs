@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
-const Bridge = require('./bridge');
-const botcommands = require('./botcommands');
-const DiscordBot = require("./discordbot")
-const SlackBot = require("./slackbot")
+import Bridge from './bridge.js';
+import DiscordBot from "./discordbot.js"
+import SlackBot from "./slackbot.js"
+import run from "./cli.js"
 
-createBots = async function(configuration) {
+export default async function createBots(configuration) {
   const bridge = new Bridge();
 
   // The config file can be both an array and an object
   if (Array.isArray(configuration)) {
-    for (config of configuration) {
+    for (const config of configuration) {
       if (config.bot === "discord") {
         let bot = new DiscordBot(config);
         bridge.addBot(bot);
@@ -28,9 +28,6 @@ createBots = async function(configuration) {
   return bridge;
 };
 
-if (!module.parent) {
-  require('./cli')(createBots);
-}
-
-module.exports = createBots;
-
+//if (!module.parent) {
+  await run(createBots);
+//}

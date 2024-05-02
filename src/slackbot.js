@@ -1,10 +1,10 @@
-const Slack = require('@slack/bolt').App;
-const logger = require('./logging');
-const https = require('https');
+import Bolt from '@slack/bolt';
+import logger from './logging.js';
+import https from 'https';
 
 const mentionRegex = /<@(\w+)>/g//
 
-class SlackBot {
+export default class SlackBot {
     constructor(config) {
         this.config = config;
         this.users = [];
@@ -12,7 +12,7 @@ class SlackBot {
     }
 
     async start() {
-        this.slack = new Slack({
+        this.slack = new Bolt.App({
             signingSecret: this.config.signingSecret,
             appToken: this.config.appToken,
             token: this.config.token,
@@ -210,5 +210,3 @@ class SlackBot {
         //  this.slackweb.chat.postMessage(slackChannel.id, text, data);
     }
 }
-
-module.exports = SlackBot;

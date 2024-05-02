@@ -1,9 +1,9 @@
-var async = require('async');
-var http = require('http');
-var https = require('https');
-var logger = require('./logging');
-var apikeys = require('./apikeys');
-var request = require('request');
+import async from 'async';
+import http from 'http';
+import logger from'./logging.js';
+import apikeys from './apikeys.js';
+import fetch from 'node-fetch';
+import geocode from './geocode.js';
 
 const pollen_icons = {
 	"Error":     "http://johnvidler.co.uk/icon/pollen/low.png",
@@ -90,30 +90,20 @@ function getWeatherForLatLong(callback, address, lat, lng, extended = false)
 	});
 }
 
-function getWeatherData( location, extended, callback)
+async function getWeatherData( location, extended, callback)
 {
-	https.get("https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(location) + "&key=" + apikeys.googleAPIKey, function(res)
+	try
 	{
-		var body = '';
-		res.on('data', (data) => body += data);
-		res.on('end', () =>
-		{
-			var apires = JSON.parse(body);
-			if (apires.results.length > 0)
-			{
-				apires = apires.results[0];
-				getWeatherForLatLong( callback,
-					apires.formatted_address,
-					apires.geometry.location.lat,
-					apires.geometry.location.lng,
-					extended );
-			}
-			else
-			{
-				callback(`Google GeoCode ERROR: ${apires.status}`, null);
-			}
-		});
-	});
+		const resolved = await geocode.resolveGeocode(location);
+
+		getWeatherForLatLong( callback,
+			resolved.name,
+			resolved.lat,
+			resolved.lon,
+			extended );
+	} catch(ex) {
+		return await callback(ex.toString(), null);
+	}
 }
 
 function handleWeather(r, text, callback, extended = false)
@@ -121,7 +111,7 @@ function handleWeather(r, text, callback, extended = false)
 	if (!text) return;
 
 	text = text.trim(); // Just in case :/
-	let locations = text.split("vs");
+	let locations = text.split(" vs ");
 
 	if( locations.length == 1 )
 		return getWeatherData( text, extended, (err, data) => {
@@ -190,76 +180,34 @@ function handleWeather(r, text, callback, extended = false)
 	return callback( r ); // return by convention, pointless here though. -John.
 }
 
-function getPollenLatLng( lat, lng, callback ) {
+async function getPollenLatLng( lat, lng, callback ) {
 	lat = lat || '54.0466';
 	lng = lng || '2.8007';
-	var base_url = 'https://socialpollencount.co.uk/api/forecast?location=';
-	var url = base_url+'['+lat+','+lng+']';
 
-	var today = new Date().toISOString().substr(0,10);
+	const url = `https://socialpollencount.co.uk/api/forecast?location=[${lat},${lng}]`;
+	const today = new Date().toISOString().substr(0,10);
 
-	if ( !String.prototype.contains ) {
-		String.prototype.contains = function() {
-			return String.prototype.indexOf.apply( this, arguments ) !== -1;
-		};
-	}
+	const request = await fetch(url);
+	const data = await request.json();
 
-	request(
-		{
-			url: url,
-			json: true
-		},
-		function (error, response, body) {
-			if (error)
-				return callback( error, null )
-
-			if (response.statusCode === 200) {
-				for( let i=0; i<body.forecast.length; i++ ) {
-					let item = body.forecast[i];
-					if (item.date.contains(today)) {
-						return callback( null, item.pollen_count );
-					}
-				};
-			}
-
-			callback( "Web request error", null );
+	for( let i=0; i<data.forecast.length; i++ ) {
+		let item = body.forecast[i];
+		if (item.date.contains(today)) {
+			return callback( null, item.pollen_count );
 		}
-	);
+	};
 }
 
-function getLatLng( location, callback ) {
-	https.get("https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(location) + "&key=" + apikeys.googleAPIKey, function(res)
-	{
-		var body = '';
-		res.on('data', (data) => body += data);
-		res.on('end', () =>
-		{
-			var apires = JSON.parse(body);
-			if (apires.results.length > 0)
-			{
-				apires = apires.results[0];
-				return callback( null, apires.formatted_address, apires.geometry.location.lat, apires.geometry.location.lng );
-			}
-			
-			return callback( `Google GeoCode ERROR: ${apires.status}`, null, null, null );
-		});
-	});
-}
-
-function handlePollen(r, text, callback)
+async function handlePollen(r, text, callback)
 {
 	if (!text) return;
 	text = text.trim();
 	r.icon = pollen_icons.Default;
 
-	getLatLng( text, (err, addr, lat, lng) => {
-		if( err ) {
-			r.text = "Sorry, Google doesn't know where that location is :(";
-			r.icon = pollen_icons.Error;
-			return callback( r );
-		}
+	try {
+		const resolved = await geocode.resolveGeocode(text);
 
-		getPollenLatLng( lat, lng, (err, result) => {
+		getPollenLatLng(resolved.lat, resolved.lon, (err, result) => {
 			if( err ) {
 				r.text = "No data for that location :(";
 				r.icon = pollen_icons.Error;
@@ -269,12 +217,15 @@ function handlePollen(r, text, callback)
 			if( pollen_icons[text] )
 				r.icon = pollen_icons[text];
 			return callback( r );
-		} )
-
-	} );
+		});
+	} catch(ex) {
+		r.icon = pollen_icons.Error;
+		r.text = ex.toString();
+		return callback( r );
+	}
 }
 
-module.exports = {
+export default {
 	"name": "weather",
 	"author": "MadrMan, John Vidler",
 	"commands": {

@@ -1,8 +1,7 @@
 "use strict";
 
-const logger = require('./logging');
-const url    = require("url");
-const https  = require("https");
+import logger from './logging.js';
+import https  from "https";
 
 const DEFAULT_ICON = "https://www.dropbox.com/s/7bld06j73430799/duck.png?raw=1"; // Stupid duck icon, naturally facing the wrong way :P
 
@@ -154,7 +153,7 @@ async function handleQuery( r, text, callback )
 	} );
 }
 
-module.exports = {
+export default {
 	"name": "theduck",
 	"author": "John Vidler",
 	"comments": "Originally just a DuckDuckGo instant answers API, but more than that now.",

@@ -1,5 +1,5 @@
-var logger = require('./logging');
-var imdb = require('imdb-api');
+import logger from './logging.js';
+import imdb from 'imdb-api';
 
 function prettyPrintImdb(r, things)
 {
@@ -71,7 +71,7 @@ function handleImdb(r, text, callback)
 	});
 }
 
-module.exports = {
+export default {
 	"name": "imdb",
 	"author": "MadrMan",
 	"commands": {

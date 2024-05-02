@@ -1,4 +1,4 @@
-const winston = require("winston")
+import winston from "winston"
 
 const myformat = winston.format.printf(({level, message, label, timestamp}) => {
 	return `${timestamp} ${level}: ${message}`;
@@ -13,4 +13,4 @@ const logger = winston.createLogger({
 	]
 });
 
-module.exports = logger
+export default logger;

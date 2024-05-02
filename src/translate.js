@@ -1,6 +1,6 @@
-var logger = require('winston');
-var apikeys = require('./apikeys');
-var https = require('https');
+import logger from 'winston';
+import apikeys from './apikeys.js';
+import https from 'https';
 
 function handleTranslate(r, text, callback)
 {
@@ -45,7 +45,7 @@ function handleTranslate(r, text, callback)
 	});	
 }
 
-module.exports = {
+export default {
 	"name": "translate",
 	"author": "MadrMan",
 	"commands": {

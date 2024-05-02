@@ -1,7 +1,7 @@
-const botcommands = require('./botcommands');
-const logger = require('./logging');
+import * as botcommands from './botcommands.js';
+import logger from './logging.js';
 
-class Bridge
+export default class Bridge
 {
     constructor() {
         this.bots = [];
@@ -56,5 +56,3 @@ class Bridge
         }
     }
 }
-
-module.exports = Bridge;

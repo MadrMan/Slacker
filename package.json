@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "author": "MadrMan, John Vidler, Hussein Duvigneau",
   "license": "ISC",
+  "type": "module",
+  "main": "src/index.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "bot": "node ./src/index.js --config ./config.js"
@@ -24,6 +26,7 @@
     "expr-eval": "^2.0.2",
     "imdb-api": "^4.4.1",
     "jsdom": "^24.0.0",
+    "node-fetch": "^3.3.2",
     "request": "^2.88.2",
     "winston": "^3.13.0"
   }

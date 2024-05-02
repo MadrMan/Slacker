@@ -1,11 +1,10 @@
-var http = require('http');
-var https = require('https');
-var logger = require('./logging');
-var apikeys = require('./apikeys');
+import https from 'https';
+import logger from './logging.js';
+import apikeys from './apikeys.js';
 
-twitchOnlineStreams =[];
-// twitchUserList = [ "madflux", "tuireanntv", "thothonegan" ];
-twitchUserList = [ "moggie100", "tuireanntv", "thothonegan" ];
+const twitchOnlineStreams =[];
+// const twitchUserList = [ "madflux", "tuireanntv", "thothonegan" ];
+const twitchUserList = [ "moggie100", "tuireanntv", "thothonegan" ];
 
 function loginTwitchAnd(next)
 {
@@ -168,7 +167,7 @@ function initializeIntervals(callback)
 	setInterval(() => twitchOnlineCheck(makeR("twitch"), null, r => callback(r, "#lobby")), 60 * 1000);
 }
 
-module.exports = {
+export default {
 	"name": "twitch.tv",
 	"author": "MadrMan",
 	"commands": {
