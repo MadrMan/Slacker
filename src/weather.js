@@ -102,6 +102,7 @@ async function getWeatherData( location, extended, callback)
 			resolved.lon,
 			extended );
 	} catch(ex) {
+		logger.error(ex);
 		return await callback(ex.toString(), null);
 	}
 }
@@ -219,6 +220,7 @@ async function handlePollen(r, text, callback)
 			return callback( r );
 		});
 	} catch(ex) {
+		logger.error(ex);
 		r.icon = pollen_icons.Error;
 		r.text = ex.toString();
 		return callback( r );

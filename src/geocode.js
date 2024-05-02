@@ -35,6 +35,7 @@ async function handleGeocode(r, text, callback)
         const location = await resolveGeocode(text);
         r.text = `Location: ${location.name}\nLatitude: ${location.lat}\nLongitude: ${location.lon}`;
     } catch(ex) {
+        logger.error(ex);
         r.text = ex.toString();
     }
 
