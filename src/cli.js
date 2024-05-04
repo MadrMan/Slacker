@@ -2,7 +2,6 @@
 
 import { program } from 'commander';
 import path from 'path';
-import checkEnv from 'check-env';
 import logger from './logging.js';
 import packageInfo from '../package.json' assert { type: "json" }
 import { pathToFileURL } from 'url';
@@ -21,8 +20,13 @@ export default async function run(createBots) {
 
   if (!options.test)
   {
-    if (!options.config) checkEnv(['CONFIG_FILE']);
-    else process.env.CONFIG_FILE = options.config;
+    if (!options.config) {
+        if (!process.env.CONFIG_FILE) {
+          throw new Error('Missing --config or environment variable CONFIG_FILE');
+        }
+    } else {
+        process.env.CONFIG_FILE = options.config;
+    }
 
     const config = path.resolve(process.cwd(), process.env.CONFIG_FILE);
     logger.debug(`Using configuration file: ${config}`);
