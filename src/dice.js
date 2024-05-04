@@ -1,4 +1,4 @@
-function handleRoll(r, text, callback)
+function handleRoll(r, text)
 {
 	if(!text) return;
 
@@ -11,8 +11,7 @@ function handleRoll(r, text, callback)
 	
 	r.command = "Roll";
 	r.text = "You rolled: " + v;
-	r.icon = "http://homepage.hispeed.ch/~grrds_games/Dice/images/dice.png";
-	callback(r);
+	r.icon = "https://cdn-icons-png.flaticon.com/512/9677/9677576.png";
 }
 
 export default {

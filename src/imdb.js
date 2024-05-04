@@ -41,10 +41,9 @@ function prettyPrintImdb(r, things)
 	};
 }
 
-function handleImdb(r, text, callback)
+async function handleImdb(r, text)
 {
 	if(!text) return;
-
 
 	var req = { name: text, year: undefined };
 	
@@ -57,17 +56,19 @@ function handleImdb(r, text, callback)
 
 	logger.error("Looking up IMDB entry for \"" + req.name + "\", year: " + req.year);
 
-	imdb.getReq(req, (err, things) => {
-		r.command = "IMDb";
-		r.icon = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/IMDB_Logo_2016.svg/1200px-IMDB_Logo_2016.svg.png";
+	await new Promise(resolve, reject, () => {
+		imdb.getReq(req, (err, things) => {
+			r.command = "IMDb";
+			r.icon = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/IMDB_Logo_2016.svg/1200px-IMDB_Logo_2016.svg.png";
 
-		if(err) {
-			r.text = err.message;
-		} else {
-			prettyPrintImdb(r, things);
-		}
+			if(err) {
+				r.text = err.message;
+			} else {
+				prettyPrintImdb(r, things);
+			}
 
-		callback(r);
+			resolve();
+		});
 	});
 }
 

@@ -3,69 +3,62 @@ import { exec } from 'child_process';
 
 var commandList = {}
 
-commandList.source = async function handleSource(r, text, callback) {
+commandList.source = async function handleSource(r, text) {
 	r.text = "https://github.com/MadrMan/Slacker";
-	r.icon = "https://assets-cdn.github.com/images/modules/logos_page/Octocat.png";
-
-	await callback(r);
+	r.icon = "https://upload.wikimedia.org/wikipedia/commons/c/c2/GitHub_Invertocat_Logo.svg";
 }
 
-commandList.echo = async function handleEcho(r, text, callback) {
+commandList.echo = async function handleEcho(r, text) {
 	r.text = text;
-
-	await callback(r);
 }
 
-commandList.help = async function handleHelp(r, text, callback) {
+commandList.help = async function handleHelp(r, text) {
 	r.text = `Available commands: ${Object.keys(commandList).map(c => `!${c}`).join(", ")}`
 	r.icon = "https://www.pngfind.com/pngs/m/686-6865480_transparent-man-symbol-png-man-question-mark-icon.png";
-
-	await callback(r);
 }
 
-commandList.pull = async function handlePull(r, text, callback) {
+commandList.pull = async function handlePull(r, text) {
 	r.icon = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Octicons-git-pull-request.svg/200px-Octicons-git-pull-request.svg.png";
 
-	exec("git pull --ff-only", (err, stdout, stderr) => {
-		if (err)
-		{
-			r.text = "```ERROR:\n" + err + "```";
-			callback(r);
+	await new Promise(resolve => {
+		exec("git pull --ff-only", (err, stdout, stderr) => {
+			if (err)
+			{
+				r.text = "```ERROR:\n" + err + "```";
+				resolve();
 
-			return;
-		}
+				return;
+			}
 
-		if (stderr)
-		{
-			r.text = "```ERROR:\n" + stderr + "```";
-		}
-		else
-		{
-			r.text = "```" + stdout + "```";
-		}
+			if (stderr)
+			{
+				r.text = "```ERROR:\n" + stderr + "```";
+			}
+			else
+			{
+				r.text = "```" + stdout + "```";
+			}
 
-		callback(r);
+			resolve();
 
-		// We assume we're in a forever loop
-		// We wait for the above reply to send, then restart
-		setTimeout(process.exit, 2001, 0);
+			// We assume we're in a forever loop
+			// We wait for the above reply to send, then restart
+			setTimeout(process.exit, 2000, 0);
+		});
 	});
 }
 
-commandList.status = async function handleStatus(r, text, callback) {
+commandList.status = async function handleStatus(r, text) {
 	r.text = "NO idea";
-	r.icon = "https://image.flaticon.com/icons/png/512/36/36601.png";
-
-	await callback(r);
+	r.icon = "https://cdn-icons-png.flaticon.com/512/1786/1786640.png";
 }
 
 var lastError;
-commandList.error = async function handleError(r, text, callback) {
-	r.icon = "http://webiconspng.com/wp-content/uploads/2017/09/Explosion-PNG-Image-63024.png";
+commandList.error = async function handleError(r, text) {
+	r.icon = "https://icons.iconarchive.com/icons/paomedia/small-n-flat/256/sign-error-icon.png";
 	r.text = "No logged error for last command";
 	if (lastError)
 		r.text = "ERROR: " + lastError;
-	await callback(r);
 }
 
 const modules = [];
@@ -137,11 +130,23 @@ export async function processUserCommand(text, callback) {
 	if (handler)
 	{
 		logger.error("Handling command: " + sep[0]);
-		await handler(r, sep.length > 1 ? sep[1] : null, async r => {
-			lastError = r.error;
+		const content = sep.length > 1 ? sep[1] : null;
+
+		// Call actual command
+		try
+		{
+			await handler(r, content);
 			if (r.error) logger.error(r.error);
-			await callback(r);
-		});
+		} catch (ex) {
+			r.error = ex.stack;
+			r.text = ex.toString();
+			logger.error(ex);
+		}
+
+		lastError = r.error;
+
+		// Reply to user
+		await callback(r);
 
 		return true;
 	}

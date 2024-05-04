@@ -23,23 +23,15 @@ async function resolveGeocode(address)
     };
 }
 
-async function handleGeocode(r, text, callback)
+async function handleGeocode(r, text)
 {
 	if (!text) return;
 	text = text.trim();
 
 	r.icon = "https://cdn-icons-png.freepik.com/512/616/616616.png?ga=GA1.1.1424404556.1714663049";
 
-    try
-    {
-        const location = await resolveGeocode(text);
-        r.text = `Location: ${location.name}\nLatitude: ${location.lat}\nLongitude: ${location.lon}`;
-    } catch(ex) {
-        logger.error(ex);
-        r.text = ex.toString();
-    }
-
-    await callback(r);
+    const location = await resolveGeocode(text);
+    r.text = `Location: ${location.name}\nLatitude: ${location.lat}\nLongitude: ${location.lon}`;
 }
 
 export default {

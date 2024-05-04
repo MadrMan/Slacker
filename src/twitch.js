@@ -6,7 +6,7 @@ const twitchOnlineStreams =[];
 // const twitchUserList = [ "madflux", "tuireanntv", "thothonegan" ];
 const twitchUserList = [ "moggie100", "tuireanntv", "thothonegan" ];
 
-function loginTwitchAnd(next)
+function loginTwitchAnd(resolve, reject)
 {
 	var httpHeaders = {
 		'client_id': apikeys.twitchClientID,
@@ -33,10 +33,10 @@ function loginTwitchAnd(next)
 
 			if (res.statusCode == 200) {
 				logger.error("Twitch login success");
-				next(apires.access_token);
+				resolve(apires.access_token);
 			} else {
-				logger.error("Twitch login failed");
 				// Failed to log in
+				reject("Twitch login failed");
 			}
 		});
 	});
@@ -82,31 +82,33 @@ function prettyPrintTwitch(r, userLogin, userDisplay, stream)
 	};
 }
 
-function printTwitchUpdateForStream(r, data, callback)
+async function printTwitchUpdateForStream(r, data)
 {
-	loginTwitchAnd(token => {
-		var options = makeTwitchOptions("/helix/users?id=" + data.user_id, token);
-		https.get(options, function(res) {
-			var body = '';
-			res.on('data', (data) => body += data);
-			// res.on('error', (e) => console.error(e));
-			res.on('end', () => {
-				var apires = JSON.parse(body);
-				logger.error(apires);
-	
-				if (res.statusCode == 200) {
-					prettyPrintTwitch(r, apires.data[0].login, apires.data[0].display_name, data);
-					callback(r);
-				} else {
-					logger.error("Twitch user fetch failed");
-					// Something blew up
-				}
+	await new Promise((resolve, reject) => {
+		loginTwitchAnd(token => {
+			var options = makeTwitchOptions("/helix/users?id=" + data.user_id, token);
+			https.get(options, function(res) {
+				var body = '';
+				res.on('data', (data) => body += data);
+				// res.on('error', (e) => console.error(e));
+				res.on('end', () => {
+					var apires = JSON.parse(body);
+					logger.error(apires);
+		
+					if (res.statusCode == 200) {
+						prettyPrintTwitch(r, apires.data[0].login, apires.data[0].display_name, data);
+						resolve();
+					} else {
+						// Something blew up
+						reject("Twitch user fetch failed");
+					}
+				});
 			});
-		});
+		}, reject);
 	});
 }
 
-function twitchOnlineCheck(r, text, callback)
+async function twitchOnlineCheck(r, text)
 {
 	r.icon = "https://vignette3.wikia.nocookie.net/logopedia/images/8/83/Twitch_icon.svg/revision/latest?cb=20140727180700";
 
@@ -123,40 +125,43 @@ function twitchOnlineCheck(r, text, callback)
 		url += "&user_login=" + user;
 	});
 
-	loginTwitchAnd(token => { 
-		https.get(makeTwitchOptions(url), function(res) {	
-			var body = '';
-			res.on('data', (data) => body += data);
-			// res.on('error', (e) => console.error(e));
-			res.on('end', () => {
-				var apires = JSON.parse(body);
-				logger.error(res.statusCode);
-				logger.error(apires);
-				if (res.statusCode == 200) {
-					if (apires.data.length == 0 && isManualCheck) {
-						r.text = usersToCheck[0] + " is offline";
-						callback(r);
+	await new Promise(resolve => {
+		loginTwitchAnd(token => { 
+			https.get(makeTwitchOptions(url), function(res) {	
+				var body = '';
+				res.on('data', (data) => body += data);
+				// res.on('error', (e) => console.error(e));
+				res.on('end', () => {
+					var apires = JSON.parse(body);
+					logger.error(res.statusCode);
+					logger.error(apires);
+					if (res.statusCode == 200) {
+						if (apires.data.length == 0 && isManualCheck) {
+							r.text = usersToCheck[0] + " is offline";
+							resolve();
+						} else {
+							var currentOnlineStreams = [];
+		
+							apires.data.forEach(function(stream)  {
+								currentOnlineStreams.push(stream.id);
+		
+								if (!twitchOnlineStreams.includes(stream.id))
+								{
+									// New stream, show update
+									// TODO: This only shows the first one due to the promise resolve
+									printTwitchUpdateForStream(r, stream, callback).then(() => resolve());
+								}
+							});
+		
+							twitchOnlineStreams = currentOnlineStreams;	
+						}
 					} else {
-						var currentOnlineStreams = [];
-	
-						apires.data.forEach(function(stream)  {
-							currentOnlineStreams.push(stream.id);
-	
-							if (!twitchOnlineStreams.includes(stream.id))
-							{
-								// New stream, show update
-								printTwitchUpdateForStream(r, stream, callback);
-							}
-						});
-	
-						twitchOnlineStreams = currentOnlineStreams;	
+						// Something blew upi
+						reject("Twitch user stream check failed");
 					}
-				} else {
-					logger.error("Twitch user stream check failed");
-					// Something blew upi
-				}
+				});
 			});
-		});
+		}, reject);
 	});
 }
 
@@ -164,7 +169,11 @@ function initializeIntervals(callback)
 {
 	logger.debug("Setting up twitch intervals...");
 
-	setInterval(() => twitchOnlineCheck(makeR("twitch"), null, r => callback(r, "#lobby")), 60 * 1000);
+	setInterval(async () => {
+		const r = makeR("twitch");
+		await twitchOnlineCheck(r, null);
+		await callback(r, "#lobby");
+	}, 60 * 1000);
 }
 
 export default {

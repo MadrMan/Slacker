@@ -1,6 +1,6 @@
 import { Parser } from 'expr-eval';
 
-function handleCalc(r, text, callback) 
+function handleCalc(r, text) 
 {
 	if(!text) return;
 
@@ -13,7 +13,6 @@ function handleCalc(r, text, callback)
 
 	r.command = "Calc";
 	r.icon = "https://i.vimeocdn.com/portrait/9922894_300x300";
-	callback(r);
 }
 
 export default {

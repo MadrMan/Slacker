@@ -93,7 +93,7 @@ async function handleSearching(r, text, page)
 	return true;
 }
 
-function handleGoogle(r, text, callback)
+async function handleGoogle(r, text)
 {
 	if(!text) return;
 
@@ -101,39 +101,35 @@ function handleGoogle(r, text, callback)
 	r.command = "Google";
 	r.text = "Google says maybe.";
 	
-	(async() => {
-		const browser = await pup.launch();
+	const browser = await pup.launch();
 
-		try {
-			const page = await browser.newPage();
-			let success = false;
-	
-			try
-			{
-				success = await handleSearching(r, text, page);
-			} catch(err) {
-				r.error = err + " | " + await screenshot(page);
-			}
-	
-			logger.error("Result of search: " + r.text + " = success: " + success);
-	
-			callback(r);
-	
-			if (success) {
-				// Forward to stop bot check
-				let resultLink = await page.waitForSelector(".r a");
-				await resultLink.click();
-				await page.waitForNavigation({waitUntil: 'load'});
-	
-				// Verify
-				await screenshot(page);
-			}
-		} catch(ferr) {
-			logger.error("Google failure: " + ferr);
-		} finally {
-			await browser.close();
+	try {
+		const page = await browser.newPage();
+		let success = false;
+
+		try
+		{
+			success = await handleSearching(r, text, page);
+		} catch(err) {
+			r.error = err + " | " + await screenshot(page);
 		}
-	})();
+
+		logger.error("Result of search: " + r.text + " = success: " + success);
+
+		if (success) {
+			// Forward to stop bot check
+			let resultLink = await page.waitForSelector(".r a");
+			await resultLink.click();
+			await page.waitForNavigation({waitUntil: 'load'});
+
+			// Verify
+			await screenshot(page);
+		}
+	} catch(ferr) {
+		logger.error("Google failure: " + ferr);
+	} finally {
+		await browser.close();
+	}
 }
 
 module.exports = {

@@ -137,20 +137,23 @@ function _question( text, callback ) {
 	}
 }
 
-async function handleQuery( r, text, callback )
+async function handleQuery(r, text)
 {
 	if(!text) return;
 
 	r.text = "Question?";
-	_question( text.trim(), (err, out) => {
-		if( err )
-			logger.error( err );
-		r.icon = out.icon || DEFAULT_ICON; // URL
-		r.command = out.command || "DuckDuckGo";
-		r.text = out.text || "Quack?";
 
-		callback(r);
-	} );
+	await new Promise(resolve => {
+		_question( text.trim(), (err, out) => {
+			if( err )
+				logger.error( err );
+			r.icon = out.icon || DEFAULT_ICON; // URL
+			r.command = out.command || "DuckDuckGo";
+			r.text = out.text || "Quack?";
+
+			resolve();
+		} );
+	});
 }
 
 export default {

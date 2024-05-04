@@ -148,13 +148,12 @@ export default class SlackBot {
             slackMessage.channel = message.context.slack.channel;
         }
 
-        slackMessage.text = message.text ? message.text : " ";
-
         if (message.attachment) {
             // Replacing our message with our cool attachment
+            slackMessage.text = null;
             slackMessage.attachments = [ message.attachment ];
         } else {
-            
+            slackMessage.text = message.text ? message.text : " ";
         }
 
         if (message.bridge && message.context.slack) {
