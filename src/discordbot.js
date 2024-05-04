@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Events, hyperlink } from "discord.js";
+import { Client, GatewayIntentBits, Events, hyperlink, ChannelType } from "discord.js";
 import logger from "./logging.js";
 import https from 'https';
 
@@ -43,17 +43,24 @@ export default class DiscordBot {
                 return;
             }
 
-            if (msg.channel) {
-                if (msg.guild) {
-                    let mappedGuild = this.config.guilds.find(guild => guild.id === msg.guild.id);
+            let channel;
+            if (msg.channel.type == ChannelType.DM)
+            {
+                // We accept these
+            } else {
+                if (msg.channel) {
+                    if (msg.guild) {
+                        let mappedGuild = this.config.guilds.find(guild => guild.id === msg.guild.id);
 
-                    if (mappedGuild) {
-                        let mappedChannel = mappedGuild.channels.find(channel => channel.discord === msg.channel.name);
-
-                        if  (mappedChannel) {
-                            var channel = mappedChannel.id;
+                        if (mappedGuild) {
+                            channel = mappedGuild.channels.find(channel => channel.discord === msg.channel.name);
                         }
                     }
+                }
+
+                if (!channel) {
+                    // This channel is not in our config, so we ignore it
+                    return;
                 }
             }
 
@@ -93,7 +100,7 @@ export default class DiscordBot {
                 const content = await replaceMentions(msg.content);
 
                 this.messageReceived(this, msg.member ? msg.member.displayName : msg.author.username, {
-                    channel: channel,
+                    channel: channel.id,
                     files: files,
                     user_icon: msg.author.displayAvatarURL({
                         format: 'png'

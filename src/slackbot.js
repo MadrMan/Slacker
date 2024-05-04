@@ -17,7 +17,7 @@ export default class SlackBot {
             appToken: this.config.appToken,
             token: this.config.token,
             socketMode: true,
-            logLevel: Bolt.LogLevel.INFO
+            logLevel: Bolt.LogLevel.DEBUG
         }); 
 
         this.slack.error(code => {
@@ -41,13 +41,19 @@ export default class SlackBot {
 
                 let user = this.users.find(user => user.id === message.user);
                 let slackChannel = this.channels.find(channel => channel.id === message.channel);
+                let mappedChannel;
 
-                // If we found a channel, map it to the mapping
-                if (slackChannel) {
-                    let mappedChannel = this.config.channels.find(channel => channel.slack === slackChannel.name);
-                    
-                    if (mappedChannel) {
-                        var channel = mappedChannel.id;
+                if (slackChannel.is_im) {
+                    // We allow these
+                } else {
+                    // If we found a channel, map it to the mapping
+                    if (slackChannel) {
+                        mappedChannel = this.config.channels.find(channel => channel.slack === slackChannel.name);
+                    }
+
+                    if (!mappedChannel) {
+                        // Config does not have these
+                        return;
                     }
                 }
 
@@ -80,7 +86,7 @@ export default class SlackBot {
                 let username = user ? user.real_name : "???";
                 const textWithMentions = replaceMentions(message.text ? message.text : message.message?.text);
                 this.messageReceived(this, username, {
-                    channel: channel,
+                    channel: mappedChannel.id,
                     files: files,
                     user_icon: user.profile?.image_512,
                     slack: { 
