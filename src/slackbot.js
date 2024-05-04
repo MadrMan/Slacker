@@ -16,8 +16,13 @@ export default class SlackBot {
             signingSecret: this.config.signingSecret,
             appToken: this.config.appToken,
             token: this.config.token,
-            socketMode: true
+            socketMode: true,
+            logLevel: Bolt.LogLevel.INFO
         }); 
+
+        this.slack.error(code => {
+            logger.error(`SLACK ERRROR: ${code}`)
+        });
 
         this.slack.message(async ({ message }) => {
             // Ignore bot messages and people leaving/joining
