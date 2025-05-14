@@ -84,7 +84,13 @@ export default class SlackBot {
                 }));
 
                 let username = user ? user.real_name : "???";
-                const textWithMentions = replaceMentions(message.text ? message.text : message.message?.text);
+                let textWithMentions = replaceMentions(message.text ? message.text : message.message?.text);
+
+                // Slack HTML entity encodes a few control characters
+                textWithMentions = textWithMentions?.replaceAll("&amp;", "&");
+                textWithMentions = textWithMentions?.replaceAll("&lt;", "<");
+                textWithMentions = textWithMentions?.replaceAll("&gt;", ">");
+
                 this.messageReceived(this, username, {
                     channel: mappedChannel.id,
                     files: files,

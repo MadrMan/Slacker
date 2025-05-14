@@ -3,7 +3,7 @@
 import { program } from 'commander';
 import path from 'path';
 import logger from './logging.js';
-import packageInfo from '../package.json' assert { type: "json" }
+import packageInfo from '../package.json' with { type: "json" }
 import { pathToFileURL } from 'url';
 
 export default async function run(createBots) {
