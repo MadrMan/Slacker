@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits, Events, hyperlink, ChannelType } from "disco
 import logger from "./logging.js";
 import https from 'https';
 
-const mentionRegex = /<@!(\w+)>/g//;
+const mentionRegex = /<@(\w+)>/g//;
 const slackLinkRegex = /<http([^>|]+)\|?([^>]+)?>/g//;
 
 const replaceLinks = function(message) {
