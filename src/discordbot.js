@@ -99,6 +99,19 @@ export default class DiscordBot {
             (async() => {
                 const content = await replaceMentions(msg.content);
 
+                let reply = null;
+                if (msg.reference) {
+                    try {
+                        const repliedMessage = await msg.channel.messages.fetch(msg.reference.messageId);
+                        //const replyAuthor = repliedMessage.member ? repliedMessage.member.displayName : repliedMessage.author.username;
+                        //reply = `@${replyAuthor} ${repliedMessage.content}`;
+                        reply = repliedMessage.content;
+                    } catch(ex) {
+                        // This might fail if they replied to a different channel, whatever
+                        logger.error(`Discord reply lookup failed: ${ex}`);
+                    }
+                }
+
                 this.messageReceived(this, msg.member ? msg.member.displayName : msg.author.username, {
                     channel: channel.id,
                     files: files,
@@ -107,7 +120,9 @@ export default class DiscordBot {
                     }),
                     discord: {
                         channel: msg.channel
-                    }},
+                    }, 
+                    reply
+                    },
                     content);
             })();
         });

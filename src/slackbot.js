@@ -215,6 +215,10 @@ export default class SlackBot {
             slackMessage.parse = "full";
         }
 
+        if (message.context.reply) {
+            slackMessage.text = `>${message.context.reply}\n${slackMessage.text}`;
+        }
+
         await this.slack.client.chat.postMessage(slackMessage);
 
         //var data = {
