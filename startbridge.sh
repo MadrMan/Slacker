@@ -1,1 +1,1 @@
-forever start --spinSleepTime 5000 ./src/index.js --config ./config.js
+npx forever ./src/index.mjs --config ./config.js
