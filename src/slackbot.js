@@ -17,7 +17,7 @@ export default class SlackBot {
             appToken: this.config.appToken,
             token: this.config.token,
             socketMode: true,
-            logLevel: Bolt.LogLevel.DEBUG
+            //logLevel: Bolt.LogLevel.DEBUG
         }); 
 
         this.slack.error(code => {
