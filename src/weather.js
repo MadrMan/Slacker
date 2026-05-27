@@ -31,17 +31,18 @@ async function getWeatherForLatLong(address, lat, lng, extended = false)
 	let weather = apijson.weather[0];
 	let windSpeed = parseFloat(apijson.wind.speed) * 3.6;
 	let data = {
-		"weather":       weather,
-		"wind":          apijson.wind,
-		"main":          apijson.main,
-		"celsius":       parseFloat(apijson.main.temp) - 273.15,
-		"prettyDesc":    weather.description.charAt(0).toUpperCase() + weather.description.slice(1),
-		"prettyAddress": address + " | " + apijson.name,
-		"windSpeed":     windSpeed,
-		"windSpeedMph":  windSpeed * 0.621371192,
-		"windDirection": 'Wind',
-		"humidity":		 apijson.main.humidity,
-		"score":         0        // Dummy value for if we're doing a 'Top Trumps' thing with this data - saves iterating over it later... -John
+		"weather":       	weather,
+		"wind":          	apijson.wind,
+		"main":          	apijson.main,
+		"celsius":       	parseFloat(apijson.main.temp) - 273.15,
+		"celsiusFeelsLike": parseFloat(apijson.main.feels_like) - 273.15,
+		"prettyDesc":    	weather.description.charAt(0).toUpperCase() + weather.description.slice(1),
+		"prettyAddress": 	address, // + " | " + apijson.name,
+		"windSpeed":     	windSpeed,
+		"windSpeedMph":  	windSpeed * 0.621371192,
+		"windDirection": 	'Wind',
+		"humidity":		 	apijson.main.humidity,
+		"score":         	0        // Dummy value for if we're doing a 'Top Trumps' thing with this data - saves iterating over it later... -John
 	};
 	
 	if (data.windSpeed > 1 && typeof data.wind.deg !== 'undefined')
@@ -51,7 +52,11 @@ async function getWeatherForLatLong(address, lat, lng, extended = false)
 		data.windDirection = windDirections[currentQuadrant % windDirections.length] + ' wind';
 	}
 
-	data.text = data.prettyAddress + " | " + data.prettyDesc + ", " + data.celsius.toFixed(1) + '\xB0C (' + (data.celsius * 1.8 + 32).toFixed(1) + '\xB0F) | ' + data.windDirection + ' ' + data.windSpeed.toFixed(1) + ' km/h (' + data.windSpeedMph.toFixed(1) + ' mph)';
+	const temperature = data.celsius.toFixed(1) + '\xB0C (' + (data.celsius * 1.8 + 32).toFixed(1) + '\xB0F)';
+	const feelsLike = data.celsiusFeelsLike.toFixed(1) + '\xB0C (' + (data.celsiusFeelsLike * 1.8 + 32).toFixed(1) + '\xB0F)';
+	const wind = data.windDirection + ' ' + data.windSpeed.toFixed(1) + ' km/h (' + data.windSpeedMph.toFixed(1) + ' mph)'
+
+	data.text = `${data.prettyAddress} | ${data.prettyDesc}, ${temperature} | ${wind} | Humidity ${data.humidity}% | Feels like ${feelsLike}`;
 	data.icon = 'http://openweathermap.org/img/w/' + weather.icon + '.png';
 
 	if(extended) {
